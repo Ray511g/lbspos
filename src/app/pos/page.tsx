@@ -142,8 +142,7 @@ export default function DistributedPOS() {
       {/* Dynamic Header */}
       <div className="bg-navy-900 border-b border-white/10 px-4 lg:px-8 py-3 flex items-center justify-between z-30">
         <div className="flex items-center gap-4 flex-1 max-w-2xl pl-12 lg:pl-0">
-           {(currentUser.role === 'CASHIER' || currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER') && (
-             <div className="flex bg-white/5 p-1 rounded-xl mr-4 border border-white/5">
+           <div className="flex bg-white/5 p-1 rounded-xl mr-4 border border-white/5">
                 <button 
                   onClick={() => setPosMode('SALES')}
                   className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest", posMode === 'SALES' ? "bg-brand-blue text-white" : "text-slate-500")}
@@ -154,10 +153,9 @@ export default function DistributedPOS() {
                   onClick={() => setPosMode('DISPATCH')}
                   className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest flex items-center gap-2", posMode === 'DISPATCH' ? "bg-emerald-500 text-white" : "text-slate-500")}
                 >
-                  DISPATCH {activeOrders.filter(o => o.status === 'PENDING').length > 0 && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />}
+                  {currentUser.role === 'WAITER' ? 'BILLS' : 'DISPATCH'} {activeOrders.filter(o => o.status === 'PENDING').length > 0 && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />}
                 </button>
-             </div>
-           )}
+           </div>
           {posMode === 'SALES' && (
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />

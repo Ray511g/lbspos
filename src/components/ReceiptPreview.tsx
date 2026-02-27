@@ -29,7 +29,7 @@ export default function ReceiptPreview({
   onConfirm,
   isConfirmed = false
 }: ReceiptPreviewProps) {
-  const { businessName, currency } = useBusinessStore();
+  const { businessName, currency, paybill, businessTill } = useBusinessStore();
   const receiptRef = useRef<HTMLDivElement>(null);
   const now = new Date();
 
@@ -38,8 +38,6 @@ export default function ReceiptPreview({
   };
 
   const handleDownload = () => {
-    // Simple way to "download" is to print and let user save as PDF
-    // or we could use another approach. For now, we trigger print.
     window.print();
   };
 
@@ -69,7 +67,7 @@ export default function ReceiptPreview({
                 <div className="w-20 h-20 bg-navy-950 rounded-[2rem] flex items-center justify-center text-white mx-auto mb-6 shadow-xl">
                     <Wine size={40} className="text-brand-blue" />
                 </div>
-                <h2 className="text-3xl font-black uppercase tracking-tighter leading-none mb-1">{businessName}</h2>
+                <h2 className="text-3xl font-black uppercase tracking-tighter leading-none mb-1 text-navy-950">{businessName}</h2>
                 <div className="flex items-center justify-center gap-2 mt-4">
                     <span className="h-[1px] w-8 bg-slate-200" />
                     <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Digital Audit Trail</p>
@@ -116,6 +114,27 @@ export default function ReceiptPreview({
                     </div>
                 ))}
             </div>
+
+            {/* Payment Portal */}
+            {(paybill || businessTill) && (
+              <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 mb-10 text-center">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[4px] mb-4">Payment Instructions</p>
+                  <div className="flex justify-center gap-8">
+                      {paybill && (
+                        <div>
+                            <span className="text-[9px] font-black text-slate-500 uppercase block mb-1">PAYBILL</span>
+                            <p className="text-lg font-black text-navy-950 tracking-tighter">{paybill}</p>
+                        </div>
+                      )}
+                      {businessTill && (
+                        <div>
+                            <span className="text-[9px] font-black text-slate-500 uppercase block mb-1">BUY GOODS TILL</span>
+                            <p className="text-lg font-black text-brand-blue tracking-tighter">{businessTill}</p>
+                        </div>
+                      )}
+                  </div>
+              </div>
+            )}
 
             {/* Totals Section */}
             <div className="space-y-3 pt-6 border-t-2 border-dashed border-slate-200">

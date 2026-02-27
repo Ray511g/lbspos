@@ -51,7 +51,9 @@ export function SyncManager() {
             setFirestoreState({ 
                 businessName: settings.businessName, 
                 currency: settings.currency, 
-                taxRate: settings.taxRate 
+                taxRate: settings.taxRate,
+                paybill: settings.paybill,
+                businessTill: settings.businessTill
             });
         }
     });

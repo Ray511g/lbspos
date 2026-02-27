@@ -53,12 +53,14 @@ interface BusinessState {
   completedOrders: Order[];
   notifications: Notification[];
   auditTrail: AuditEntry[];
+  paybill?: string;
+  businessTill?: string;
   
   // Real-time Sync (Used by SyncManager)
   setFirestoreState: (state: Partial<BusinessState>) => void;
   
   // Configuration Functions
-  updateSettings: (settings: Partial<{ businessName: string; businessType: BusinessType; currency: string; taxRate: number }>) => void;
+  updateSettings: (settings: Partial<{ businessName: string; businessType: BusinessType; currency: string; taxRate: number; paybill: string; businessTill: string }>) => void;
   
   // Product Management
   addProduct: (product: Product, adminName: string) => Promise<void>;
@@ -95,6 +97,8 @@ export const useBusinessStore = create<BusinessState>()(
       completedOrders: [],
       notifications: [],
       auditTrail: [],
+      paybill: '',
+      businessTill: '',
 
       setFirestoreState: (state) => set((s) => ({ ...s, ...state })),
 
@@ -104,6 +108,8 @@ export const useBusinessStore = create<BusinessState>()(
               businessName: get().businessName,
               currency: get().currency,
               taxRate: get().taxRate,
+              paybill: get().paybill || '',
+              businessTill: get().businessTill || '',
               updatedAt: new Date().toISOString()
           }, { merge: true });
       },

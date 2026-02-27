@@ -200,6 +200,12 @@ export const useBusinessStore = create<BusinessState>()(
       // Order Actions
       createOrder: async (order) => {
           await setDoc(doc(db, "activeOrders", order.id), order);
+          // Auto-generate notification for counter
+          await get().addNotification({
+            title: 'New Order Received',
+            message: `${order.waiterName} sent a new order for ${get().currency} ${order.total.toLocaleString()}`,
+            type: 'INFO'
+          });
       },
 
       dispatchOrder: async (orderId, initiator) => {

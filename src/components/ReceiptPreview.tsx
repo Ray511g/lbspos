@@ -207,19 +207,20 @@ export default function ReceiptPreview({
 
       <style jsx global>{`
         @media print {
-          body * { visibility: hidden; }
-          .receipt-print-area, .receipt-print-area * { visibility: visible; }
+          body * { visibility: hidden !important; }
+          .receipt-print-area, .receipt-print-area * { visibility: visible !important; }
           .receipt-print-area { 
-            position: fixed; 
-            left: 0; 
-            top: 0; 
-            width: 100%; 
-            max-width: 80mm;
-            margin: 0 auto; 
-            padding: 5mm;
-            background: white;
+            position: absolute !important; 
+            left: 0 !important; 
+            top: 0 !important; 
+            width: 80mm !important;
+            margin: 0 !important; 
+            padding: 4mm !important;
+            background: white !important;
+            border: none !important;
+            box-shadow: none !important;
           }
-          .custom-scrollbar { overflow: visible !important; }
+          @page { size: auto; margin: 0; }
         }
         @media (max-width: 640px) {
            .receipt-print-area { padding: 1.5rem !important; }

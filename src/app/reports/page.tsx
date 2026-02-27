@@ -202,15 +202,27 @@ export default function ReportsPage() {
       {/* Print View Style */}
       <style jsx global>{`
         @media print {
-          .no-print { display: none !important; }
-          body { background: white !important; color: black !important; }
-          .glass-card { background: white !important; color: black !important; border: 1px solid #ddd !important; box-shadow: none !important; border-radius: 0 !important; }
+          .no-print, .lg\\:hidden, button { display: none !important; }
+          body { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
+          .glass-card { 
+            background: white !important; 
+            color: black !important; 
+            border: 1px solid #eee !important; 
+            box-shadow: none !important; 
+            border-radius: 2rem !important;
+            margin-bottom: 2rem !important;
+            padding: 2rem !important;
+          }
           .text-white { color: black !important; }
           .text-slate-500, .text-slate-400 { color: #666 !important; }
-          .bg-brand-blue, .premium-gradient { background: #000 !important; }
-          table { width: 100% !important; border-collapse: collapse !important; }
-          th { background: #eee !important; border-bottom: 2px solid black !important; }
-          td { border-bottom: 1px solid #ddd !important; }
+          .bg-brand-blue, .premium-gradient { background: #000 !important; color: white !important; -webkit-print-color-adjust: exact; }
+          .text-brand-blue { color: #000 !important; }
+          table { width: 100% !important; border-collapse: collapse !important; font-size: 10pt !important; }
+          th { background: #f8f8f8 !important; border-bottom: 2px solid #000 !important; padding: 12px !important; }
+          td { border-bottom: 1px solid #eee !important; padding: 12px !important; }
+          h1 { font-size: 24pt !important; margin-bottom: 0.5rem !important; }
+          .grid { display: block !important; }
+          .grid > div { width: 100% !important; margin-bottom: 1rem !important; }
         }
       `}</style>
     </div>

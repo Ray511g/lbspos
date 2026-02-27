@@ -49,6 +49,8 @@ export default function DistributedPOS() {
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'MPESA' | 'CARD' | null>(null);
   const [processing, setProcessing] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
+  const [reviewingOrder, setReviewingOrder] = useState(false);
+  const [viewingReceiptOrder, setViewingReceiptOrder] = useState<any>(null);
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [posMode, setPosMode] = useState<'SALES' | 'DISPATCH'>('SALES');
   const [phone, setPhone] = useState('');
@@ -65,23 +67,28 @@ export default function DistributedPOS() {
     if (items.length === 0) return;
     
     if (currentUser.role === 'WAITER') {
-       // Waiters "Send to Counter"
-       const newOrder = {
-         id: `ORD-${Date.now()}`,
-         waiterId: currentUser.id,
-         waiterName: currentUser.name,
-         items: [...items],
-         total,
-         status: 'PENDING' as const,
-         timestamp: new Date().toISOString()
-       };
-       createOrder(newOrder);
-       clearCart();
-       alert("Order sent to Counter successfully!");
+       // Waiters see receipt preview first
+       setReviewingOrder(true);
     } else {
        // Cashiers/Admins do direct payment
        setShowPaymentModal(true);
     }
+  };
+
+  const confirmAndSendOrder = () => {
+     const newOrder = {
+       id: `ORD-${Date.now()}`,
+       waiterId: currentUser.id,
+       waiterName: currentUser.name,
+       items: [...items],
+       total,
+       status: 'PENDING' as const,
+       timestamp: new Date().toISOString()
+     };
+     createOrder(newOrder);
+     clearCart();
+     setReviewingOrder(false);
+     alert("Order sent to Counter successfully!");
   };
 
   const handleSTKPush = async () => {
@@ -295,15 +302,23 @@ export default function DistributedPOS() {
                      </div>
                      <div className="p-6 border-t border-white/10 bg-black/20 flex items-center justify-between">
                         <div className="text-xl font-black text-white">{currency} {order.total.toLocaleString()}</div>
-                        {order.status === 'PENDING' ? (
-                          <button onClick={() => dispatchOrder(order.id, currentUser.name)} className="bg-brand-blue text-white px-5 py-2 rounded-xl text-[10px] font-black flex items-center gap-2">
-                             <Truck size={14} /> DISPATCH
-                          </button>
-                        ) : (
-                          <button onClick={() => completeOrder(order.id, currentUser.name)} className="bg-emerald-500 text-white px-5 py-2 rounded-xl text-[10px] font-black flex items-center gap-2">
-                             <CheckCircle size={14} /> SETTLE BILL
-                          </button>
-                        )}
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={() => setViewingReceiptOrder(order)}
+                                className="bg-white/10 text-white p-2.5 rounded-xl border border-white/5 hover:bg-white/20 transition-all"
+                            >
+                                <Printer size={18} />
+                            </button>
+                            {order.status === 'PENDING' ? (
+                              <button onClick={() => dispatchOrder(order.id, currentUser.name)} className="bg-brand-blue text-white px-5 py-2 rounded-xl text-[10px] font-black flex items-center gap-2">
+                                 <Truck size={14} /> DISPATCH
+                              </button>
+                            ) : (
+                              <button onClick={() => completeOrder(order.id, currentUser.name)} className="bg-emerald-500 text-white px-5 py-2 rounded-xl text-[10px] font-black flex items-center gap-2">
+                                 <CheckCircle size={14} /> SETTLE BILL
+                              </button>
+                            )}
+                        </div>
                      </div>
                   </motion.div>
                 ))}
@@ -471,23 +486,58 @@ export default function DistributedPOS() {
         )}
       </AnimatePresence>
 
-      {orderComplete && (
-        <ReceiptPreview 
-          items={[...items]} 
-          total={total} 
-          subtotal={subtotal} 
-          tax={taxTotal} 
-          onClose={() => {
-            setOrderComplete(false);
-            setShowPaymentModal(false);
-            setPaymentMethod(null);
-            setPhone('');
-            setAmountReceived('');
-            setStkStatus('IDLE');
-            clearCart();
-          }}
-        />
-      )}
+      {/* 1. Waiter Review Receipt (Before Send) */}
+      <AnimatePresence>
+        {reviewingOrder && (
+          <ReceiptPreview 
+            items={[...items]} 
+            total={total} 
+            subtotal={subtotal} 
+            tax={taxTotal} 
+            waiterName={currentUser.name}
+            onClose={() => setReviewingOrder(false)}
+            onConfirm={confirmAndSendOrder}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* 2. Direct Sale Receipt (After Cashier Sells) */}
+      <AnimatePresence>
+        {orderComplete && (
+          <ReceiptPreview 
+            items={[...items]} 
+            total={total} 
+            subtotal={subtotal} 
+            tax={taxTotal} 
+            waiterName={currentUser.name}
+            onClose={() => {
+              setOrderComplete(false);
+              setShowPaymentModal(false);
+              setPaymentMethod(null);
+              setPhone('');
+              setAmountReceived('');
+              setStkStatus('IDLE');
+              clearCart();
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* 3. Dispatch Queue Receipt View */}
+      <AnimatePresence>
+        {viewingReceiptOrder && (
+          <ReceiptPreview 
+            items={viewingReceiptOrder.items} 
+            total={viewingReceiptOrder.total} 
+            subtotal={viewingReceiptOrder.total / 1.16} // Estimate subtotal
+            tax={viewingReceiptOrder.total - (viewingReceiptOrder.total / 1.16)} // Estimate tax
+            waiterName={viewingReceiptOrder.waiterName}
+            orderId={viewingReceiptOrder.id}
+            isConfirmed={true}
+            onClose={() => setViewingReceiptOrder(null)}
+          />
+        )}
+      </AnimatePresence>
 
       <style jsx global>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }

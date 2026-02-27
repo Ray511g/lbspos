@@ -1,101 +1,207 @@
 "use client";
 
-import React from 'react';
-import { Printer, Download, Share2, X, ShieldCheck } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React, { useRef } from 'react';
+import { Printer, Download, Share2, X, ShieldCheck, CheckCircle, FileText } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useBusinessStore } from '@/store/businessStore';
+import { cn } from '@/lib/utils';
 
 interface ReceiptPreviewProps {
   items: any[];
   total: number;
   subtotal: number;
   tax: number;
+  waiterName?: string;
+  orderId?: string;
   onClose: () => void;
+  onConfirm?: () => void; // Optional: If provided, shows a "Confirm & Send" button
+  isConfirmed?: boolean;
 }
 
-export default function ReceiptPreview({ items, total, subtotal, tax, onClose }: ReceiptPreviewProps) {
+export default function ReceiptPreview({ 
+  items, 
+  total, 
+  subtotal, 
+  tax, 
+  waiterName, 
+  orderId, 
+  onClose, 
+  onConfirm,
+  isConfirmed = false
+}: ReceiptPreviewProps) {
   const { businessName, currency } = useBusinessStore();
+  const receiptRef = useRef<HTMLDivElement>(null);
   const now = new Date();
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownload = () => {
+    // Simple way to "download" is to print and let user save as PDF
+    // or we could use another approach. For now, we trigger print.
+    window.print();
+  };
+
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
       <motion.div 
         initial={{ opacity: 0 }} 
         animate={{ opacity: 1 }} 
-        className="absolute inset-0 bg-navy-950/90 backdrop-blur-md" 
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-navy-950/95 backdrop-blur-xl" 
         onClick={onClose}
       />
       
       <motion.div 
-        initial={{ scale: 0.9, y: 20, opacity: 0 }}
+        initial={{ scale: 0.9, y: 30, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
-        className="relative w-full max-w-md bg-white text-slate-900 rounded-[2rem] shadow-2xl overflow-hidden flex flex-col"
+        exit={{ scale: 0.9, y: 30, opacity: 0 }}
+        className="relative w-full max-w-lg bg-white text-slate-950 rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col"
       >
-        {/* Receipt Header */}
-        <div className="bg-slate-50 p-8 text-center border-b-2 border-dashed border-slate-200">
-           <div className="w-16 h-16 bg-navy-950 rounded-2xl flex items-center justify-center text-white mx-auto mb-4 font-black text-xl tracking-tighter">
-             LP
-           </div>
-           <h2 className="text-xl font-black uppercase tracking-tight">{businessName}</h2>
-           <p className="text-xs text-slate-500 font-bold mt-1">Liquor Terminal #001</p>
-           <p className="text-[10px] text-slate-400 mt-2">{now.toLocaleString()}</p>
-        </div>
+        {/* Decorative Top Bar */}
+        <div className="h-2 w-full premium-gradient" />
 
-        {/* Items */}
-        <div className="flex-1 p-8 space-y-4 overflow-y-auto max-h-[400px] custom-scrollbar">
-           {items.map((item, idx) => (
-             <div key={idx} className="flex justify-between text-sm">
-                <div className="flex-1">
-                  <p className="font-bold text-slate-800 uppercase text-xs">{item.name}</p>
-                  <p className="text-[10px] text-slate-500">{item.quantity} x {currency} {item.price.toLocaleString()}</p>
-                  {item.type === 'Returnable' && (
-                    <p className="text-[9px] text-emerald-600 font-black uppercase tracking-tighter leading-none mt-1">Incl. Bottle Deposit</p>
-                  )}
+        {/* Receipt Content Area (Scrollable) */}
+        <div ref={receiptRef} className="flex-1 overflow-y-auto p-4 sm:p-10 custom-scrollbar receipt-print-area">
+            {/* Header */}
+            <div className="text-center mb-10">
+                <div className="w-20 h-20 bg-navy-950 rounded-[2rem] flex items-center justify-center text-white mx-auto mb-6 shadow-xl">
+                    <Wine size={40} className="text-brand-blue" />
                 </div>
-                <span className="font-black text-slate-900">{currency} {(item.price * item.quantity).toLocaleString()}</span>
-             </div>
-           ))}
+                <h2 className="text-3xl font-black uppercase tracking-tighter leading-none mb-1">{businessName}</h2>
+                <div className="flex items-center justify-center gap-2 mt-4">
+                    <span className="h-[1px] w-8 bg-slate-200" />
+                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Digital Audit Trail</p>
+                    <span className="h-[1px] w-8 bg-slate-200" />
+                </div>
+            </div>
+
+            {/* Meta Info */}
+            <div className="grid grid-cols-2 gap-4 py-6 border-y-2 border-dashed border-slate-200 mb-8">
+                <div>
+                    <span className="text-[9px] font-black text-slate-400 uppercase block tracking-widest mb-1">Terminal ID</span>
+                    <p className="text-xs font-bold text-slate-800">#POS-001-HQ</p>
+                </div>
+                <div className="text-right">
+                    <span className="text-[9px] font-black text-slate-400 uppercase block tracking-widest mb-1">Date & Time</span>
+                    <p className="text-xs font-bold text-slate-800">{now.toLocaleDateString()} {now.toLocaleTimeString()}</p>
+                </div>
+                {waiterName && (
+                  <div className="mt-2">
+                      <span className="text-[9px] font-black text-slate-400 uppercase block tracking-widest mb-1">Served By</span>
+                      <p className="text-xs font-bold text-slate-800 uppercase">{waiterName}</p>
+                  </div>
+                )}
+                {orderId && (
+                  <div className="mt-2 text-right">
+                      <span className="text-[9px] font-black text-slate-400 uppercase block tracking-widest mb-1">Order Ref</span>
+                      <p className="text-xs font-bold text-slate-800">{orderId}</p>
+                  </div>
+                )}
+            </div>
+
+            {/* Item List */}
+            <div className="space-y-6 mb-10">
+                {items.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-start">
+                        <div className="flex-1">
+                            <h4 className="text-sm font-black text-slate-900 uppercase leading-none mb-1">{item.name}</h4>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded font-bold">{item.quantity}x</span>
+                                <span className="text-[10px] text-slate-500 font-medium">{currency} {item.price.toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <span className="text-sm font-black text-slate-950">{currency} {(item.price * item.quantity).toLocaleString()}</span>
+                    </div>
+                ))}
+            </div>
+
+            {/* Totals Section */}
+            <div className="space-y-3 pt-6 border-t-2 border-dashed border-slate-200">
+                <div className="flex justify-between text-xs font-bold text-slate-500">
+                    <span className="tracking-widest">SUBTOTAL</span>
+                    <span>{currency} {subtotal.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-xs font-bold text-slate-500">
+                    <span className="tracking-widest capitalize">VAT (16%)</span>
+                    <span>{currency} {tax.toLocaleString()}</span>
+                </div>
+                <div className="h-4" />
+                <div className="flex justify-between items-center text-4xl font-black text-slate-950 tracking-tighter">
+                    <span>TOTAL</span>
+                    <div className="flex flex-col items-end">
+                        <span className="leading-none">{currency} {total.toLocaleString()}</span>
+                        <div className="h-1 w-full premium-gradient mt-2 opacity-30" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Compliance Footer */}
+            <div className="mt-12 flex flex-col items-center gap-4 text-center">
+                <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-100">
+                    <ShieldCheck size={14} className="text-emerald-500" />
+                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">KRA E-TIMS VALIDATED</span>
+                </div>
+                <p className="text-[10px] text-slate-400 font-bold max-w-[200px]">Thank you for your business. Please come again!</p>
+                <div className="opacity-10 grayscale py-4">
+                  {/* barcode placeholder or logo */}
+                   <FileText size={40} className="text-slate-950" />
+                </div>
+            </div>
         </div>
 
-        {/* Totals */}
-        <div className="p-8 bg-slate-50 border-t-2 border-dashed border-slate-200 space-y-2">
-           <div className="flex justify-between text-xs font-bold text-slate-500">
-             <span>SUBTOTAL</span>
-             <span>{currency} {subtotal.toLocaleString()}</span>
-           </div>
-           <div className="flex justify-between text-xs font-bold text-slate-500">
-             <span>TAX (VAT 16.0%)</span>
-             <span>{currency} {tax.toLocaleString()}</span>
-           </div>
-           <div className="flex justify-between text-2xl font-black text-slate-900 pt-2">
-             <span>TOTAL</span>
-             <span>{currency} {total.toLocaleString()}</span>
-           </div>
-           <div className="text-[9px] text-center text-slate-400 pt-6 font-bold uppercase tracking-[3px] flex items-center justify-center gap-2">
-             <ShieldCheck size={12} className="text-emerald-500" />
-             KRA E-TIMS VALIDATED
-           </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="p-4 bg-navy-950 flex gap-2">
-           <button className="flex-1 bg-white/10 hover:bg-white/20 text-white rounded-xl py-4 flex items-center justify-center gap-2 transition-all font-bold text-xs">
-             <Share2 size={16} /> SHARE
-           </button>
-           <button onClick={() => window.print()} className="flex-[2] bg-brand-blue hover:bg-sapphire text-white rounded-xl py-4 flex items-center justify-center gap-2 transition-all font-black text-xs shadow-lg shadow-brand-blue/20">
-             <Printer size={16} /> PRINT RECEIPT
-           </button>
+        {/* Action Controls - Not visible in print */}
+        <div className="p-6 bg-navy-950 flex flex-col sm:flex-row gap-3 print:hidden">
+            {onConfirm && !isConfirmed ? (
+                <button 
+                  onClick={onConfirm}
+                  className="flex-[2] bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl py-5 flex items-center justify-center gap-3 transition-all font-black text-base shadow-xl shadow-emerald-500/20"
+                >
+                    <CheckCircle size={24} /> CONFIRM & COMMIT
+                </button>
+            ) : (
+                <>
+                    <button 
+                      onClick={handleDownload}
+                      className="flex-1 bg-white/10 hover:bg-white/20 text-white rounded-2xl py-5 flex items-center justify-center gap-3 transition-all font-bold text-sm"
+                    >
+                        <Download size={20} /> DOWNLOAD
+                    </button>
+                    <button 
+                      onClick={handlePrint}
+                      className="flex-[1.5] bg-brand-blue hover:bg-sapphire text-white rounded-2xl py-5 flex items-center justify-center gap-3 transition-all font-black text-sm shadow-xl shadow-brand-blue/20"
+                    >
+                        <Printer size={20} /> PRINT RECEIPT
+                    </button>
+                </>
+            )}
         </div>
 
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-300 transition-all"
+          className="absolute top-6 right-6 w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-white hover:text-brand-blue transition-all border border-slate-200 print:hidden z-10"
         >
-          <X size={16} />
+          <X size={20} />
         </button>
       </motion.div>
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+
+      <style jsx global>{`
+        @media print {
+          body * { visibility: hidden; }
+          .receipt-print-area, .receipt-print-area * { visibility: visible; }
+          .receipt-print-area { 
+            position: fixed; 
+            left: 0; 
+            top: 0; 
+            width: 80mm; 
+            margin: 0; 
+            padding: 10mm;
+            background: white;
+          }
+          .custom-scrollbar { overflow: visible !important; }
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
       `}</style>
     </div>

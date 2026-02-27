@@ -277,14 +277,22 @@ export default function DistributedPOS() {
              {/* Waiter Analytics Sub-Module (Only for Cashier/Admin) */}
              {(currentUser.role === 'CASHIER' || currentUser.role === 'ADMIN') && (
                <div className="mb-8">
-                  <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-center mb-4">
                      <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">Digital Staff Ledger</h3>
-                     <button 
-                        onClick={() => setShowWaiterStats(!showWaiterStats)}
-                        className="text-[10px] font-black text-brand-blue border border-brand-blue/20 px-4 py-2 rounded-xl"
-                     >
-                        {showWaiterStats ? 'HIDE LEDGER' : 'VIEW WAITER DEBTS'}
-                     </button>
+                     <div className="flex gap-2">
+                        <button 
+                            onClick={() => window.print()}
+                            className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-4 py-2 rounded-xl text-[10px] font-black flex items-center gap-2"
+                        >
+                            <Printer size={12} /> NIGHTLY AUDIT
+                        </button>
+                        <button 
+                            onClick={() => setShowWaiterStats(!showWaiterStats)}
+                            className="text-[10px] font-black text-brand-blue border border-brand-blue/20 px-4 py-2 rounded-xl"
+                        >
+                            {showWaiterStats ? 'HIDE LEDGER' : 'VIEW WAITER DEBTS'}
+                        </button>
+                     </div>
                   </div>
                   
                   <AnimatePresence>
@@ -398,7 +406,9 @@ export default function DistributedPOS() {
                       </tr>
                    </thead>
                    <tbody className="divide-y divide-white/5">
-                      {useBusinessStore.getState().completedOrders.map(order => (
+                      {(currentUser.role === 'WAITER' 
+                         ? useBusinessStore.getState().completedOrders.filter(o => o.waiterId === currentUser.id)
+                         : useBusinessStore.getState().completedOrders).map(order => (
                         <tr key={order.id} className="hover:bg-white/[0.02] text-xs transition-colors">
                            <td className="px-8 py-6">
                               <span className="text-white font-black tracking-tighter">#{order.id.slice(-6)}</span>

@@ -14,7 +14,9 @@ import {
   ShieldCheck,
   X,
   Save,
-  Lock
+  Lock,
+  Upload,
+  DownloadCloud
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBusinessStore, Product } from '@/store/businessStore';
@@ -55,6 +57,29 @@ export default function LiquorInventory() {
     setShowAddModal(false);
     setFormData({ name: '', price: 0, category: 'Beer', stock: 0, volume: '750ml' });
   };
+  const handleBulkUpload = () => {
+    const template = "Name,Price,Category,Stock,Volume\nJameson,3500,Whiskey,24,750ml\nHeineken,250,Beer,48,500ml";
+    const data = prompt("Paste your CSV data here (Header: Name,Price,Category,Stock,Volume):", template);
+    if (!data) return;
+
+    const rows = data.split('\n').slice(1); // Skip header
+    let count = 0;
+    rows.forEach(row => {
+      const [name, price, category, stock, volume] = row.split(',');
+      if (name && price) {
+        addProduct({
+          id: `P-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+          name: name.trim(),
+          price: Number(price),
+          category: category.trim() || 'Misc',
+          stock: Number(stock) || 0,
+          volume: volume.trim() || '750ml'
+        } as Product, currentUser?.name || 'Bulk Upload');
+        count++;
+      }
+    });
+    alert(`Successfully queued ${count} products for import!`);
+  };
 
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -85,6 +110,15 @@ export default function LiquorInventory() {
             <ShieldCheck size={18} className="text-emerald-400" />
             COMPLIANCE
           </button>
+          {canManage && (
+            <button 
+              onClick={handleBulkUpload}
+              className="flex-1 lg:flex-none flex items-center justify-center gap-3 bg-brand-blue/10 border border-brand-blue/20 px-6 py-4 rounded-2xl text-brand-blue font-bold hover:bg-brand-blue/20 transition-all text-sm"
+            >
+              <Upload size={18} />
+              BULK IMPORT
+            </button>
+          )}
         </div>
       </div>
 

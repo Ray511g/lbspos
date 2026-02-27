@@ -61,18 +61,14 @@ export default function ReceiptPreview({
         <div className="h-2 w-full premium-gradient" />
 
         {/* Receipt Content Area (Scrollable) */}
-        <div ref={receiptRef} className="flex-1 overflow-y-auto p-4 sm:p-10 custom-scrollbar receipt-print-area">
+        <div ref={receiptRef} className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar receipt-print-area">
             {/* Header */}
-            <div className="text-center mb-10">
-                <div className="w-20 h-20 bg-navy-950 rounded-[2rem] flex items-center justify-center text-white mx-auto mb-6 shadow-xl">
-                    <Wine size={40} className="text-brand-blue" />
+            <div className="text-center mb-6">
+                <div className="w-12 h-12 bg-navy-950 rounded-2xl flex items-center justify-center text-white mx-auto mb-3 shadow-lg">
+                    <Wine size={24} className="text-brand-blue" />
                 </div>
-                <h2 className="text-3xl font-black uppercase tracking-tighter leading-none mb-1 text-navy-950">{businessName}</h2>
-                <div className="flex items-center justify-center gap-2 mt-4">
-                    <span className="h-[1px] w-8 bg-slate-200" />
-                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Digital Audit Trail</p>
-                    <span className="h-[1px] w-8 bg-slate-200" />
-                </div>
+                <h2 className="text-xl font-black uppercase tracking-tighter leading-none mb-1 text-navy-950">{businessName}</h2>
+                <p className="text-[8px] text-slate-500 font-black uppercase tracking-[2px]">Fiscal Receipt</p>
             </div>
 
             {/* Meta Info */}
@@ -100,17 +96,16 @@ export default function ReceiptPreview({
             </div>
 
             {/* Item List */}
-            <div className="space-y-6 mb-10">
+            <div className="space-y-3 mb-6">
                 {items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-start">
+                    <div key={idx} className="flex justify-between items-start text-[11px]">
                         <div className="flex-1">
-                            <h4 className="text-sm font-black text-slate-900 uppercase leading-none mb-1">{item.name}</h4>
+                            <h4 className="font-bold text-slate-900 uppercase leading-none mb-0.5">{item.name}</h4>
                             <div className="flex items-center gap-2">
-                                <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded font-bold">{item.quantity}x</span>
-                                <span className="text-[10px] text-slate-500 font-medium">{currency} {item.price.toLocaleString()}</span>
+                                <span className="text-[9px] text-slate-500">{item.quantity} x {currency} {item.price.toLocaleString()}</span>
                             </div>
                         </div>
-                        <span className="text-sm font-black text-slate-950">{currency} {(item.price * item.quantity).toLocaleString()}</span>
+                        <span className="font-bold text-slate-950">{currency} {(item.price * item.quantity).toLocaleString()}</span>
                     </div>
                 ))}
             </div>
@@ -137,36 +132,28 @@ export default function ReceiptPreview({
             )}
 
             {/* Totals Section */}
-            <div className="space-y-3 pt-6 border-t-2 border-dashed border-slate-200">
-                <div className="flex justify-between text-xs font-bold text-slate-500">
-                    <span className="tracking-widest">SUBTOTAL</span>
+            <div className="space-y-2 pt-4 border-t border-dashed border-slate-300">
+                <div className="flex justify-between text-[10px] font-bold text-slate-600">
+                    <span>SUBTOTAL</span>
                     <span>{currency} {subtotal.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-xs font-bold text-slate-500">
-                    <span className="tracking-widest capitalize">VAT ({useBusinessStore.getState().taxRate}%)</span>
+                <div className="flex justify-between text-[10px] font-bold text-slate-600">
+                    <span>TAX ({useBusinessStore.getState().taxRate}%)</span>
                     <span>{currency} {tax.toLocaleString()}</span>
                 </div>
-                <div className="h-4" />
-                <div className="flex justify-between items-center text-3xl sm:text-4xl font-black text-slate-950 tracking-tighter">
+                <div className="flex justify-between items-center text-xl font-black text-slate-950 pt-2 border-t border-slate-100 mt-2">
                     <span>TOTAL</span>
-                    <div className="flex flex-col items-end">
-                        <span className="leading-none">{currency} {total.toLocaleString()}</span>
-                        <div className="h-1 w-full premium-gradient mt-2 opacity-30" />
-                    </div>
+                    <span>{currency} {total.toLocaleString()}</span>
                 </div>
             </div>
 
             {/* Compliance Footer */}
-            <div className="mt-12 flex flex-col items-center gap-4 text-center">
-                <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-100">
-                    <ShieldCheck size={14} className="text-emerald-500" />
-                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">KRA E-TIMS VALIDATED</span>
+            <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+                <p className="text-[8px] text-slate-400 font-bold mb-2 uppercase tracking-widest">Smart-Mini Receipt Engine v2.0</p>
+                <div className="flex justify-center mb-4 grayscale opacity-20">
+                    <FileText size={30} />
                 </div>
-                <p className="text-[10px] text-slate-400 font-bold max-w-[200px]">Thank you for your business. Please come again!</p>
-                <div className="opacity-10 grayscale py-4">
-                  {/* barcode placeholder or logo */}
-                   <FileText size={40} className="text-slate-950" />
-                </div>
+                <p className="text-[9px] text-slate-900 font-black italic">Thank you for your business!</p>
             </div>
         </div>
 

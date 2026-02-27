@@ -150,7 +150,7 @@ export default function ReportsPage() {
         ))}
       </div>
 
-      <div className="glass-card rounded-[3rem] overflow-hidden border-white/5">
+      <div className="glass-card rounded-[3rem] overflow-hidden border-white/5 no-print">
           <table className="w-full text-left">
               <thead>
                   <tr className="bg-white/5 text-slate-500 text-[10px] font-black uppercase tracking-widest">
@@ -199,30 +199,61 @@ export default function ReportsPage() {
           </table>
       </div>
 
-      {/* Print View Style */}
+      {/* DEDICATED PRINT DATA VIEW (Hidden in screen, visible in print) */}
+      <div className="hidden print:block fixed inset-0 bg-white text-black p-10 z-[500]">
+          <div className="text-center mb-10 border-b-2 border-black pb-6">
+              <h1 className="text-3xl font-black uppercase">{useBusinessStore.getState().businessName}</h1>
+              <p className="text-sm font-bold mt-2 uppercase tracking-[3px]">Financial Movement Report</p>
+              <div className="flex justify-between mt-6 text-[10px] font-bold uppercase">
+                  <span>Generated: {new Date().toLocaleString()}</span>
+                  <span>Currency: {currency}</span>
+              </div>
+          </div>
+
+          <table className="w-full text-left border-collapse border border-slate-300">
+              <thead>
+                  <tr className="bg-slate-100 text-[10px] font-bold uppercase border border-slate-300">
+                      <th className="p-4 border border-slate-300">Order ID / Date</th>
+                      <th className="p-4 border border-slate-300">Waiter</th>
+                      <th className="p-4 border border-slate-300">Products & Quantities</th>
+                      <th className="p-4 border border-slate-300 text-right">Total ({currency})</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  {filteredOrders.map(order => (
+                      <tr key={order.id} className="text-[10px] border border-slate-300">
+                          <td className="p-4 border border-slate-300">
+                              <div className="font-bold">{order.id}</div>
+                              <div className="text-[8px] text-slate-500">{new Date(order.timestamp).toLocaleString()}</div>
+                          </td>
+                          <td className="p-4 border border-slate-300 font-bold uppercase">{order.waiterName}</td>
+                          <td className="p-4 border border-slate-300">
+                              {order.items.map((i:any) => `${i.quantity} x ${i.name}`).join(', ')}
+                          </td>
+                          <td className="p-4 border border-slate-300 text-right font-black">
+                              {order.total.toLocaleString()}
+                          </td>
+                      </tr>
+                  ))}
+              </tbody>
+              <tfoot>
+                  <tr className="bg-slate-50 font-black uppercase text-sm border border-slate-300">
+                      <td colSpan={3} className="p-4 border border-slate-300 text-right tracking-widest underline">Total Aggregated Revenue</td>
+                      <td className="p-4 border border-slate-300 text-right text-lg border-l-2 border-l-black">{currency} {totalRevenue.toLocaleString()}</td>
+                  </tr>
+              </tfoot>
+          </table>
+
+          <div className="mt-10 text-center text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+              End of Automated Financial Document
+          </div>
+      </div>
+
       <style jsx global>{`
         @media print {
-          .no-print, .lg\\:hidden, button { display: none !important; }
-          body { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
-          .glass-card { 
-            background: white !important; 
-            color: black !important; 
-            border: 1px solid #eee !important; 
-            box-shadow: none !important; 
-            border-radius: 2rem !important;
-            margin-bottom: 2rem !important;
-            padding: 2rem !important;
-          }
-          .text-white { color: black !important; }
-          .text-slate-500, .text-slate-400 { color: #666 !important; }
-          .bg-brand-blue, .premium-gradient { background: #000 !important; color: white !important; -webkit-print-color-adjust: exact; }
-          .text-brand-blue { color: #000 !important; }
-          table { width: 100% !important; border-collapse: collapse !important; font-size: 10pt !important; }
-          th { background: #f8f8f8 !important; border-bottom: 2px solid #000 !important; padding: 12px !important; }
-          td { border-bottom: 1px solid #eee !important; padding: 12px !important; }
-          h1 { font-size: 24pt !important; margin-bottom: 0.5rem !important; }
-          .grid { display: block !important; }
-          .grid > div { width: 100% !important; margin-bottom: 1rem !important; }
+          .no-print, nav, #sidebar, .lg\\:hidden, button, header, .glass-card { display: none !important; }
+          body, html { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; width: 100% !important; height: auto !important; overflow: visible !important; }
+          main { overflow: visible !important; padding: 0 !important; }
         }
       `}</style>
     </div>

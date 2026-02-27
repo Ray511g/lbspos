@@ -63,9 +63,10 @@ interface BusinessState {
   
   // Order Management
   createOrder: (order: Order) => void;
-  dispatchOrder: (orderId: string) => void;
+  dispatchOrder: (orderId: string, initiator: string) => void;
   completeOrder: (orderId: string, initiator: string) => void;
   voidOrder: (orderId: string) => void;
+  recordSale: (items: any[], total: number, initiator: string) => void;
   
   // Reporting & Stats
   getSalesByWaiter: () => Record<string, number>;
@@ -187,16 +188,36 @@ export const useBusinessStore = create<BusinessState>()(
         activeOrders: [...state.activeOrders, order] 
       })),
 
-      dispatchOrder: (orderId) => set((state) => ({
-        activeOrders: state.activeOrders.map(o => o.id === orderId ? { ...o, status: 'DISPATCHED' } : o)
-      })),
+      dispatchOrder: (orderId, initiator) => {
+        const order = get().activeOrders.find(o => o.id === orderId);
+        if (order && order.status === 'PENDING') {
+          // Deduct stock when dispatched
+          order.items.forEach(item => {
+            get().updateStock(item.id, item.quantity, 'SALE', initiator);
+          });
+          
+          set((state) => ({
+            activeOrders: state.activeOrders.map(o => o.id === orderId ? { ...o, status: 'DISPATCHED' } : o)
+          }));
+
+          get().addAudit({
+            userId: 'COUNTER',
+            userName: initiator,
+            action: 'DISPATCH_ORDER',
+            details: `Dispatched order ${orderId} - Stock reduced.`
+          });
+        }
+      },
 
       completeOrder: (orderId, initiator) => {
         const order = get().activeOrders.find(o => o.id === orderId);
         if (order) {
-          order.items.forEach(item => {
-            get().updateStock(item.id, item.quantity, 'SALE', initiator);
-          });
+          // If it was still pending for some reason, deduct stock now
+          if (order.status === 'PENDING') {
+            order.items.forEach(item => {
+              get().updateStock(item.id, item.quantity, 'SALE', initiator);
+            });
+          }
           
           set((state) => ({
             activeOrders: state.activeOrders.filter(o => o.id !== orderId),
@@ -212,15 +233,52 @@ export const useBusinessStore = create<BusinessState>()(
         }
       },
 
-      voidOrder: (orderId) => set((state) => ({
-        activeOrders: state.activeOrders.filter(o => o.id !== orderId)
-      })),
+      recordSale: (items, total, initiator) => {
+        // Direct counter sale - deduct stock immediately
+        items.forEach(item => {
+          get().updateStock(item.id, item.quantity, 'SALE', initiator);
+        });
+
+        const newOrder: Order = {
+          id: `INV-${Date.now()}`,
+          waiterId: 'COUNTER',
+          waiterName: initiator,
+          items: [...items],
+          total,
+          status: 'PAID',
+          timestamp: new Date().toISOString()
+        };
+
+        set((state) => ({
+          completedOrders: [...state.completedOrders, newOrder]
+        }));
+
+        get().addAudit({
+          userId: 'COUNTER',
+          userName: initiator,
+          action: 'DIRECT_SALE',
+          details: `Direct counter sale - ${get().currency} ${total} - Stock reduced.`
+        });
+      },
+
+      voidOrder: (orderId) => {
+        const order = get().activeOrders.find(o => o.id === orderId);
+        if (order && order.status === 'DISPATCHED') {
+          // If it was already dispatched (stock deducted), add stock back
+          order.items.forEach(item => {
+            get().updateStock(item.id, item.quantity, 'MANUAL', 'SYSTEM_VOID');
+          });
+        }
+        set((state) => ({
+          activeOrders: state.activeOrders.filter(o => o.id !== orderId)
+        }));
+      },
 
       getSalesByWaiter: () => {
         const completed = get().completedOrders;
         const sales: Record<string, number> = {};
         completed.forEach(o => {
-          sales[o.waiterName] = (sales[o.waiterName] || 0) + o.total;
+          sales[o.waiterName] = (sales[o.waiterName] || 0) + (Number(o.total) || 0);
         });
         return sales;
       },

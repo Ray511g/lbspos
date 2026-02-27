@@ -115,6 +115,9 @@ export default function DistributedPOS() {
 
   const processPayment = () => {
     setProcessing(true);
+    // Record the sale in the business store (deducts stock & logs audit)
+    recordSale([...items], total, currentUser.name);
+    
     setTimeout(() => {
       setProcessing(false);
       setOrderComplete(true);
@@ -293,11 +296,11 @@ export default function DistributedPOS() {
                      <div className="p-6 border-t border-white/10 bg-black/20 flex items-center justify-between">
                         <div className="text-xl font-black text-white">{currency} {order.total.toLocaleString()}</div>
                         {order.status === 'PENDING' ? (
-                          <button onClick={() => dispatchOrder(order.id)} className="bg-brand-blue text-white px-5 py-2 rounded-xl text-[10px] font-black flex items-center gap-2">
+                          <button onClick={() => dispatchOrder(order.id, currentUser.name)} className="bg-brand-blue text-white px-5 py-2 rounded-xl text-[10px] font-black flex items-center gap-2">
                              <Truck size={14} /> DISPATCH
                           </button>
                         ) : (
-                          <button onClick={() => completeOrder(order.id)} className="bg-emerald-500 text-white px-5 py-2 rounded-xl text-[10px] font-black flex items-center gap-2">
+                          <button onClick={() => completeOrder(order.id, currentUser.name)} className="bg-emerald-500 text-white px-5 py-2 rounded-xl text-[10px] font-black flex items-center gap-2">
                              <CheckCircle size={14} /> SETTLE BILL
                           </button>
                         )}

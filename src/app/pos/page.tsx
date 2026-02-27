@@ -132,7 +132,7 @@ export default function DistributedPOS() {
       {/* Dynamic Header */}
       <div className="bg-navy-900 border-b border-white/10 px-4 lg:px-8 py-3 flex items-center justify-between z-30">
         <div className="flex items-center gap-4 flex-1 max-w-2xl pl-12 lg:pl-0">
-           {(currentUser.role === 'CASHIER' || currentUser.role === 'ADMIN') && (
+           {(currentUser.role === 'CASHIER' || currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER') && (
              <div className="flex bg-white/5 p-1 rounded-xl mr-4 border border-white/5">
                 <button 
                   onClick={() => setPosMode('SALES')}
@@ -203,7 +203,15 @@ export default function DistributedPOS() {
                        </div>
                        <h4 className="text-white font-bold text-xs lg:text-sm truncate">{p.name}</h4>
                        <div className="flex justify-between items-center mt-3">
-                          <span className="text-brand-blue font-black">{currency} {p.price.toLocaleString()}</span>
+                          <div className="flex flex-col">
+                             <span className="text-brand-blue font-black">{currency} {p.price.toLocaleString()}</span>
+                             <span className={cn(
+                               "text-[9px] font-bold uppercase",
+                               p.stock < 10 ? "text-orange-500" : "text-slate-500"
+                             )}>
+                               {p.stock} Left
+                             </span>
+                          </div>
                           <div className="w-8 h-8 rounded-lg bg-brand-blue/10 flex items-center justify-center text-brand-blue">
                              <Plus size={16} />
                           </div>

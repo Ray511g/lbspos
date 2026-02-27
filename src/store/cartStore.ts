@@ -7,7 +7,7 @@ export interface CartItem {
   quantity: number;
   category: string;
   image?: string;
-  tax: number;
+  tax?: number;
 }
 
 interface CartState {
@@ -39,7 +39,7 @@ export const useCartStore = create<CartState>((set) => ({
     }
     
     const subtotal = newItems.reduce((acc, i) => acc + (i.price * i.quantity), 0);
-    const taxTotal = newItems.reduce((acc, i) => acc + (i.price * i.tax * i.quantity), 0);
+    const taxTotal = newItems.reduce((acc, i) => acc + (i.price * (i.tax || 0) * i.quantity), 0);
     
     return {
       items: newItems,
@@ -52,7 +52,7 @@ export const useCartStore = create<CartState>((set) => ({
   removeItem: (id) => set((state) => {
     const newItems = state.items.filter(i => i.id !== id);
     const subtotal = newItems.reduce((acc, i) => acc + (i.price * i.quantity), 0);
-    const taxTotal = newItems.reduce((acc, i) => acc + (i.price * i.tax * i.quantity), 0);
+    const taxTotal = newItems.reduce((acc, i) => acc + (i.price * (i.tax || 0) * i.quantity), 0);
     return { items: newItems, subtotal, taxTotal, total: subtotal + taxTotal };
   }),
 
@@ -65,7 +65,7 @@ export const useCartStore = create<CartState>((set) => ({
       return i;
     });
     const subtotal = newItems.reduce((acc, i) => acc + (i.price * i.quantity), 0);
-    const taxTotal = newItems.reduce((acc, i) => acc + (i.price * i.tax * i.quantity), 0);
+    const taxTotal = newItems.reduce((acc, i) => acc + (i.price * (i.tax || 0) * i.quantity), 0);
     return { items: newItems, subtotal, taxTotal, total: subtotal + taxTotal };
   }),
 

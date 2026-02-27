@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type UserRole = 'ADMIN' | 'CASHIER' | 'WAITER';
+export type UserRole = 'ADMIN' | 'MANAGER' | 'CASHIER' | 'WAITER';
 
 export interface User {
   id: string;
@@ -29,6 +29,7 @@ export const useAuthStore = create<AuthState>()(
         { id: '2', name: 'Main Cashier', pin: '1234', role: 'CASHIER' },
         { id: '3', name: 'Waiter John', pin: '1111', role: 'WAITER' },
         { id: '4', name: 'Waitress Mercy', pin: '2222', role: 'WAITER' },
+        { id: '5', name: 'Night Manager', pin: '3333', role: 'MANAGER' },
       ],
       login: (pin: string) => {
         const user = get().users.find((u) => u.pin === pin);

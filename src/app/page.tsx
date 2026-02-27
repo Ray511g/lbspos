@@ -67,8 +67,8 @@ export default function SmartDashboard() {
         </div>
       </div>
 
-      {/* Admin Intelligence Layer */}
-      {currentUser.role === 'ADMIN' && (
+      {/* Admin/Manager Intelligence Layer */}
+      {(currentUser.role === 'ADMIN' || currentUser.role === 'MANAGER') && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[

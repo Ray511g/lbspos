@@ -27,14 +27,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/authStore';
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Overview', path: '/', roles: ['ADMIN', 'CASHIER', 'WAITER'] },
-  { icon: ShoppingCart, label: 'Counter POS', path: '/pos', roles: ['ADMIN', 'CASHIER', 'WAITER'] },
-  { icon: Package, label: 'Inventory', path: '/inventory', roles: ['ADMIN', 'CASHIER'] },
-  { icon: RefreshCw, label: 'Empties/Crates', path: '/empties', roles: ['ADMIN', 'CASHIER'] },
-  { icon: SmartphoneNfc, label: 'M-Pesa Recon', path: '/mpesa', roles: ['ADMIN', 'CASHIER'] },
-  { icon: BarChart3, label: 'Reports', path: '/reports', roles: ['ADMIN', 'CASHIER'] },
-  { icon: Users, label: 'Team', path: '/staff', roles: ['ADMIN'] },
-  { icon: AppWindow, label: 'Business Engine', path: '/admin', roles: ['ADMIN'] },
+  { icon: LayoutDashboard, label: 'Overview', path: '/', roles: ['ADMIN', 'MANAGER', 'CASHIER', 'WAITER'] },
+  { icon: ShoppingCart, label: 'Counter POS', path: '/pos', roles: ['ADMIN', 'MANAGER', 'CASHIER', 'WAITER'] },
+  { icon: Package, label: 'Inventory', path: '/inventory', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
+  { icon: RefreshCw, label: 'Empties/Crates', path: '/empties', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
+  { icon: SmartphoneNfc, label: 'M-Pesa Recon', path: '/mpesa', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
+  { icon: BarChart3, label: 'Reports', path: '/reports', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
+  { icon: Users, label: 'Team', path: '/staff', roles: ['ADMIN', 'MANAGER'] },
+  { icon: AppWindow, label: 'Business Engine', path: '/admin', roles: ['ADMIN', 'MANAGER'] },
 ];
 
 export default function Sidebar() {

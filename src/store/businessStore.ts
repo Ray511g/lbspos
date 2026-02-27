@@ -78,6 +78,7 @@ interface BusinessState {
   // Reporting & Stats
   getSalesByWaiter: () => Record<string, number>;
   getWaiterStats: (waiterId: string) => { settled: number; unsettled: number; total: number };
+  getWaiterSummary: () => { waiterName: string; settled: number; unsettled: number; total: number }[];
   
   // Internal Utility
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => Promise<void>;
@@ -283,6 +284,21 @@ export const useBusinessStore = create<BusinessState>()(
         const settled = completed.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
         const unsettled = pending.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
         return { settled, unsettled, total: settled + unsettled };
+      },
+
+      getWaiterSummary: () => {
+        const waiters = [...new Set([
+          ...get().completedOrders.map(o => o.waiterName),
+          ...get().activeOrders.map(o => o.waiterName)
+        ])];
+
+        return waiters.map(name => {
+          const completed = get().completedOrders.filter(o => o.waiterName === name);
+          const active = get().activeOrders.filter(o => o.waiterName === name);
+          const settled = completed.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+          const unsettled = active.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+          return { waiterName: name, settled, unsettled, total: settled + unsettled };
+        });
       }
     }),
     { name: 'business-storage' }

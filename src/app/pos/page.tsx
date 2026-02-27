@@ -52,10 +52,11 @@ export default function DistributedPOS() {
   const [reviewingOrder, setReviewingOrder] = useState(false);
   const [viewingReceiptOrder, setViewingReceiptOrder] = useState<any>(null);
   const [showMobileCart, setShowMobileCart] = useState(false);
-  const [posMode, setPosMode] = useState<'SALES' | 'DISPATCH'>('SALES');
+  const [posMode, setPosMode] = useState<'SALES' | 'DISPATCH' | 'PAYMENTS'>('SALES');
   const [phone, setPhone] = useState('');
   const [amountReceived, setAmountReceived] = useState('');
   const [stkStatus, setStkStatus] = useState<'IDLE' | 'SENDING' | 'WAITING' | 'SUCCESS' | 'ERROR'>('IDLE');
+  const [showWaiterStats, setShowWaiterStats] = useState(false);
   
   useEffect(() => {
     if (!currentUser) router.push('/login');
@@ -67,8 +68,8 @@ export default function DistributedPOS() {
     if (items.length === 0) return;
     
     if (currentUser.role === 'WAITER') {
-       // Waiters see receipt preview first
-       setReviewingOrder(true);
+       // Waiters send to counter directly now (per request: let orders go to dispatch first)
+       confirmAndSendOrder();
     } else {
        // Cashiers/Admins do direct payment
        setShowPaymentModal(true);
@@ -149,11 +150,17 @@ export default function DistributedPOS() {
                 >
                   SALES
                 </button>
-                <button 
+                 <button 
                   onClick={() => setPosMode('DISPATCH')}
                   className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest flex items-center gap-2", posMode === 'DISPATCH' ? "bg-emerald-500 text-white" : "text-slate-500")}
                 >
-                  {currentUser.role === 'WAITER' ? 'BILLS' : 'DISPATCH'} {activeOrders.filter(o => o.status === 'PENDING').length > 0 && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />}
+                  {currentUser.role === 'WAITER' ? 'QUEUE' : 'DISPATCH'} {activeOrders.filter(o => o.status === 'PENDING').length > 0 && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />}
+                </button>
+                <button 
+                  onClick={() => setPosMode('PAYMENTS')}
+                  className={cn("px-4 py-1.5 rounded-lg text-[10px] font-black tracking-widest", posMode === 'PAYMENTS' ? "bg-purple-500 text-white" : "text-slate-500")}
+                >
+                  SETTLEMENTS
                 </button>
            </div>
           {posMode === 'SALES' && (
@@ -264,11 +271,50 @@ export default function DistributedPOS() {
                </div>
             </div>
           </>
-        ) : (
+        ) : posMode === 'DISPATCH' ? (
           /* Dispatch Mode View (For Cashier/Admin) */
           <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-6">
+             {/* Waiter Analytics Sub-Module (Only for Cashier/Admin) */}
+             {(currentUser.role === 'CASHIER' || currentUser.role === 'ADMIN') && (
+               <div className="mb-8">
+                  <div className="flex justify-between items-center mb-4">
+                     <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">Digital Staff Ledger</h3>
+                     <button 
+                        onClick={() => setShowWaiterStats(!showWaiterStats)}
+                        className="text-[10px] font-black text-brand-blue border border-brand-blue/20 px-4 py-2 rounded-xl"
+                     >
+                        {showWaiterStats ? 'HIDE LEDGER' : 'VIEW WAITER DEBTS'}
+                     </button>
+                  </div>
+                  
+                  <AnimatePresence>
+                    {showWaiterStats && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                           {useBusinessStore.getState().getWaiterSummary().map(waiter => (
+                             <div key={waiter.waiterName} className="glass-card p-6 rounded-[2rem] border-white/5 bg-white/[0.02]">
+                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">{waiter.waiterName}</h4>
+                                <div className="space-y-2">
+                                   <div className="flex justify-between">
+                                      <span className="text-[10px] font-bold text-slate-400">UNSETTLED</span>
+                                      <span className="text-xs font-black text-red-500">{currency} {waiter.unsettled.toLocaleString()}</span>
+                                   </div>
+                                   <div className="flex justify-between">
+                                      <span className="text-[10px] font-bold text-slate-400">SETTLED</span>
+                                      <span className="text-xs font-black text-emerald-500">{currency} {waiter.settled.toLocaleString()}</span>
+                                   </div>
+                                </div>
+                             </div>
+                           ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+               </div>
+             )}
+
              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {activeOrders.map(order => (
+                {(currentUser.role === 'WAITER' ? activeOrders.filter(o => o.waiterId === currentUser.id) : activeOrders).map(order => (
                   <motion.div 
                     layout
                     key={order.id} 
@@ -300,23 +346,27 @@ export default function DistributedPOS() {
                      </div>
                      <div className="p-6 border-t border-white/10 bg-black/20 flex items-center justify-between">
                         <div className="text-xl font-black text-white">{currency} {order.total.toLocaleString()}</div>
-                        <div className="flex gap-2">
-                            <button 
-                                onClick={() => setViewingReceiptOrder(order)}
-                                className="bg-white/10 text-white p-2.5 rounded-xl border border-white/5 hover:bg-white/20 transition-all"
-                            >
-                                <Printer size={18} />
-                            </button>
-                            {order.status === 'PENDING' ? (
-                              <button onClick={() => dispatchOrder(order.id, currentUser.name)} className="bg-brand-blue text-white px-5 py-2 rounded-xl text-[10px] font-black flex items-center gap-2">
-                                 <Truck size={14} /> DISPATCH
-                              </button>
-                            ) : (
-                              <button onClick={() => completeOrder(order.id, currentUser.name)} className="bg-emerald-500 text-white px-5 py-2 rounded-xl text-[10px] font-black flex items-center gap-2">
-                                 <CheckCircle size={14} /> SETTLE BILL
+                         <div className="flex gap-2">
+                            {(order.status === 'DISPATCHED' || currentUser.role !== 'WAITER') && (
+                              <button 
+                                  onClick={() => setViewingReceiptOrder(order)}
+                                  className="bg-white/10 text-white p-2.5 rounded-xl border border-white/5 hover:bg-white/20 transition-all font-black text-[10px] flex items-center gap-2"
+                              >
+                                  <Printer size={16} /> BILL
                               </button>
                             )}
-                        </div>
+                            {(currentUser.role === 'CASHIER' || currentUser.role === 'ADMIN') && (
+                              order.status === 'PENDING' ? (
+                                <button onClick={() => dispatchOrder(order.id, currentUser.name)} className="bg-brand-blue text-white px-5 py-2 rounded-xl text-[10px] font-black flex items-center gap-2">
+                                   <Truck size={14} /> DISPATCH
+                                </button>
+                              ) : (
+                                <button onClick={() => completeOrder(order.id, currentUser.name)} className="bg-emerald-500 text-white px-5 py-2 rounded-xl text-[10px] font-black flex items-center gap-2">
+                                   <CheckCircle size={14} /> SETTLE BILL
+                                </button>
+                              )
+                            )}
+                         </div>
                      </div>
                   </motion.div>
                 ))}
@@ -326,6 +376,49 @@ export default function DistributedPOS() {
                      <p className="font-black uppercase tracking-[4px]">Queue is empty</p>
                   </div>
                 )}
+             </div>
+          </div>
+        ) : (
+          /* Payments Module View */
+          <div className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-6">
+             <div className="mb-6">
+                <h3 className="text-2xl font-black text-white font-outfit uppercase">Master Settlement Journal</h3>
+                <p className="text-slate-500 text-sm">Reviewing all finalized transactions per order.</p>
+             </div>
+             
+             <div className="glass-card rounded-[3rem] overflow-hidden border-white/5">
+                <table className="w-full text-left">
+                   <thead>
+                      <tr className="bg-white/5 text-slate-500 text-[10px] font-black uppercase tracking-widest">
+                         <th className="px-8 py-6">Order Ref</th>
+                         <th className="px-8 py-6">Staff</th>
+                         <th className="px-8 py-6">Items</th>
+                         <th className="px-8 py-6">Total Paid</th>
+                         <th className="px-8 py-6 text-right">Actions</th>
+                      </tr>
+                   </thead>
+                   <tbody className="divide-y divide-white/5">
+                      {useBusinessStore.getState().completedOrders.map(order => (
+                        <tr key={order.id} className="hover:bg-white/[0.02] text-xs transition-colors">
+                           <td className="px-8 py-6">
+                              <span className="text-white font-black tracking-tighter">#{order.id.slice(-6)}</span>
+                              <div className="text-[10px] text-slate-500">{new Date(order.timestamp).toLocaleString()}</div>
+                           </td>
+                           <td className="px-8 py-6 text-white font-bold">{order.waiterName}</td>
+                           <td className="px-8 py-6 text-slate-400">{order.items.length} Products</td>
+                           <td className="px-8 py-6 text-emerald-500 font-black">{currency} {order.total.toLocaleString()}</td>
+                           <td className="px-8 py-6 text-right">
+                              <button 
+                                onClick={() => setViewingReceiptOrder(order)}
+                                className="text-brand-blue font-black tracking-widest uppercase text-[9px] hover:underline"
+                              >
+                                VIEW RECEIPT
+                              </button>
+                           </td>
+                        </tr>
+                      ))}
+                   </tbody>
+                </table>
              </div>
           </div>
         )}

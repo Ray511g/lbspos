@@ -39,7 +39,7 @@ const CATEGORIES = ['All', 'Beer', 'Whiskey', 'Gin', 'Mixers'];
 
 export default function DistributedPOS() {
   const { items, addItem, removeItem, updateQuantity, subtotal, taxTotal, total, clearCart } = useCartStore();
-  const { currency, createOrder, activeOrders, dispatchOrder, completeOrder, voidOrder, products } = useBusinessStore();
+  const { currency, createOrder, activeOrders, dispatchOrder, completeOrder, recordSale, voidOrder, products } = useBusinessStore();
   const { currentUser } = useAuthStore();
   const router = useRouter();
   

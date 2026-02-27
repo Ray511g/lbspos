@@ -162,8 +162,12 @@ export default function Sidebar() {
             </div>
           </nav>
 
-          {/* Footer Area */}
-                <div className="flex items-center gap-4">
+          <div className="p-6 mt-auto">
+            <div className={cn(
+                "bg-navy-900/50 border border-white/5 rounded-[2rem] overflow-hidden transition-all",
+                collapsed && !mobileOpen ? "p-2" : "p-4"
+            )}>
+              <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-brand-blue font-black shrink-0 border border-white/5">
                   {currentUser?.name.charAt(0)}
                 </div>

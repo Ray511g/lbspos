@@ -14,39 +14,41 @@ import {
   ChevronRight,
   LogOut,
   AppWindow,
-  Zap,
   Wine,
-  RefreshCw,
-  SmartphoneNfc,
   Menu,
-  X
+  X,
+  Bell,
+  Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useAuthStore } from '@/store/authStore';
+import { useBusinessStore } from '@/store/businessStore';
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Overview', path: '/', roles: ['ADMIN', 'MANAGER', 'CASHIER', 'WAITER'] },
   { icon: ShoppingCart, label: 'Counter POS', path: '/pos', roles: ['ADMIN', 'MANAGER', 'CASHIER', 'WAITER'] },
-  { icon: Package, label: 'Inventory', path: '/inventory', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
-  { icon: RefreshCw, label: 'Empties/Crates', path: '/empties', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
-  { icon: SmartphoneNfc, label: 'M-Pesa Recon', path: '/mpesa', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
-  { icon: BarChart3, label: 'Reports', path: '/reports', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
-  { icon: Users, label: 'Team', path: '/staff', roles: ['ADMIN', 'MANAGER'] },
+  { icon: Package, label: 'Inventory Vault', path: '/inventory', roles: ['ADMIN', 'MANAGER', 'CASHIER'] },
+  { icon: BarChart3, label: 'Reports', path: '/reports', roles: ['ADMIN', 'MANAGER'] },
+  { icon: Activity, label: 'Nightly Audit', path: '/audit', roles: ['ADMIN'] },
   { icon: AppWindow, label: 'Business Engine', path: '/admin', roles: ['ADMIN', 'MANAGER'] },
 ];
 
 export default function Sidebar() {
-  const { currentUser } = useAuthStore();
+  const { currentUser, logout } = useAuthStore();
+  const { notifications, markNotificationsRead } = useBusinessStore();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const pathname = usePathname();
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <>
       {/* Mobile Toggle */}
-      <div className="lg:hidden fixed top-4 left-4 z-[60]">
+      <div className="lg:hidden fixed top-4 left-4 z-[60] flex gap-2">
         <button 
           onClick={() => setMobileOpen(!mobileOpen)}
           className="w-12 h-12 bg-navy-900 border border-white/10 rounded-2xl flex items-center justify-center text-white shadow-2xl"
@@ -66,12 +68,13 @@ export default function Sidebar() {
             }}
             exit={mobileOpen ? { x: -300 } : undefined}
             className={cn(
-              "h-[100dvh] bg-navy-950 border-r border-white/10 flex flex-col z-50 transition-all duration-300 ease-in-out shadow-2xl",
+              "h-screen bg-navy-950 border-r border-white/10 flex flex-col z-50 transition-all duration-300 ease-in-out shadow-2xl",
               mobileOpen && "fixed top-0 left-0"
             )}
           >
+            {/* Logo Area */}
             <div className="p-6 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl premium-gradient flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl premium-gradient flex items-center justify-center shrink-0 shadow-lg shadow-brand-blue/20">
                 <Wine className="text-white" size={24} />
               </div>
               {(!collapsed || mobileOpen) && (
@@ -80,10 +83,24 @@ export default function Sidebar() {
                   animate={{ opacity: 1 }}
                   className="font-black text-xl tracking-tight text-white whitespace-nowrap"
                 >
-                  LIQUOR<span className="text-brand-blue">PRO</span>
+                  BEST<span className="text-brand-blue">POS</span>
                 </motion.div>
               )}
             </div>
+
+            {/* Notifications Indicator (for small screens or mobile) */}
+            {currentUser?.role === 'CASHIER' && (
+              <div className="px-6 mb-4">
+                 <button 
+                  onClick={() => { setShowNotifications(!showNotifications); markNotificationsRead(); }}
+                  className="w-full h-12 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center relative text-slate-400 hover:text-white transition-all"
+                 >
+                    <Bell size={20} />
+                    {unreadCount > 0 && <span className="absolute top-2 right-4 w-2 h-2 bg-red-500 rounded-full animate-pulse" />}
+                    {(!collapsed || mobileOpen) && <span className="ml-3 font-bold text-xs uppercase tracking-widest italic">Alerts</span>}
+                 </button>
+              </div>
+            )}
 
             <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
               {menuItems
@@ -120,23 +137,67 @@ export default function Sidebar() {
               })}
             </nav>
 
-            <div className="p-4 border-t border-white/5">
+            <div className="p-4 border-t border-white/5 space-y-2">
+              <div className="flex items-center gap-3 px-2 py-3 rounded-xl bg-white/5 border border-white/5 overflow-hidden">
+                <div className="w-8 h-8 rounded-full bg-brand-blue/20 flex items-center justify-center text-brand-blue font-black text-xs shrink-0">
+                  {currentUser?.name.charAt(0)}
+                </div>
+                {(!collapsed || mobileOpen) && (
+                  <div className="min-w-0">
+                    <p className="text-white font-bold text-xs truncate">{currentUser?.name}</p>
+                    <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest">{currentUser?.role}</p>
+                  </div>
+                )}
+              </div>
+              
               <button 
-                onClick={() => { useAuthStore.getState().logout(); window.location.href = '/login'; }}
-                className="flex items-center gap-4 px-4 py-3 w-full text-slate-400 hover:text-red-400 transition-colors"
+                onClick={() => { logout(); window.location.href = '/login'; }}
+                className="flex items-center gap-4 px-4 py-3 w-full text-slate-400 hover:text-red-400 transition-colors group"
               >
-                <LogOut size={22} />
+                <LogOut size={22} className="group-hover:translate-x-1 transition-transform" />
                 {(!collapsed || mobileOpen) && <span className="font-semibold text-sm">Lock Register</span>}
               </button>
             </div>
 
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="hidden lg:flex absolute -right-3 top-20 w-6 h-6 bg-brand-blue rounded-full items-center justify-center text-white border-2 border-navy-950 hover:scale-110 transition-transform z-50"
+              className="hidden lg:flex absolute -right-3 top-20 w-6 h-6 bg-brand-blue rounded-full items-center justify-center text-white border-2 border-navy-950 hover:scale-110 transition-transform z-50 shadow-lg"
             >
               {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
             </button>
           </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* Notifications Popover */}
+      <AnimatePresence>
+        {showNotifications && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="fixed bottom-20 left-20 z-[70] w-80 glass-card bg-navy-900 border border-white/10 p-6 rounded-[2rem] shadow-2xl"
+          >
+             <div className="flex justify-between items-center mb-6">
+                <h4 className="text-white font-black text-xs uppercase tracking-widest">Alerts Center</h4>
+                <button onClick={() => setShowNotifications(false)} className="text-slate-500 hover:text-white"><X size={16} /></button>
+             </div>
+             <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar pr-2">
+                {notifications.map(n => (
+                  <div key={n.id} className="p-4 rounded-2xl bg-white/5 border border-white/5 relative">
+                     {!n.read && <div className="absolute top-2 right-2 w-2 h-2 bg-brand-blue rounded-full" />}
+                     <p className="text-white font-bold text-[11px] mb-1">{n.title}</p>
+                     <p className="text-slate-400 text-[10px] leading-relaxed">{n.message}</p>
+                     <span className="text-[9px] text-slate-600 mt-2 block font-bold">{new Date(n.timestamp).toLocaleTimeString()}</span>
+                  </div>
+                ))}
+                {notifications.length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-slate-600 text-[10px] font-black uppercase">No alerts found</p>
+                  </div>
+                )}
+             </div>
+          </motion.div>
         )}
       </AnimatePresence>
 

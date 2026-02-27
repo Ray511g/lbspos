@@ -13,17 +13,22 @@ import {
   Wine, 
   ShieldCheck,
   X,
-  Save
+  Save,
+  Lock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBusinessStore, Product } from '@/store/businessStore';
+import { useAuthStore } from '@/store/authStore';
 
 export default function LiquorInventory() {
   const { products, addProduct, updateProduct, deleteProduct, currency } = useBusinessStore();
+  const { currentUser } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'all' | 'low' | 'categories'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  const canManage = currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER';
 
   // New Product Form State
   const [formData, setFormData] = useState<Partial<Product>>({
@@ -36,14 +41,16 @@ export default function LiquorInventory() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManage) return;
+    
     if (editingProduct) {
-      updateProduct(editingProduct.id, formData);
+      updateProduct(editingProduct.id, formData, currentUser?.name || 'Unknown');
       setEditingProduct(null);
     } else {
       addProduct({
         ...formData,
         id: `P-${Date.now()}`
-      } as Product);
+      } as Product, currentUser?.name || 'Unknown');
     }
     setShowAddModal(false);
     setFormData({ name: '', price: 0, category: 'Beer', stock: 0, volume: '750ml' });
@@ -62,19 +69,21 @@ export default function LiquorInventory() {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
         <div>
           <h1 className="text-5xl font-black text-white font-outfit mb-2">Liquor <span className="text-brand-blue">Vault</span></h1>
-          <p className="text-slate-400">Managing <span className="text-white font-bold">{products.length}</span> high-value alcohol lines and government excise compliance.</p>
+          <p className="text-slate-400">Managing <span className="text-white font-bold">{products.length}</span> high-value alcohol lines.</p>
         </div>
         <div className="flex gap-4 w-full lg:w-auto">
+          {canManage && (
+            <button 
+                onClick={() => { setEditingProduct(null); setShowAddModal(true); }}
+                className="flex-1 lg:flex-none flex items-center justify-center gap-3 premium-gradient px-8 py-4 rounded-2xl text-white font-black shadow-xl shadow-brand-blue/20 hover:scale-[1.02] transition-all text-sm"
+            >
+                <Plus size={20} />
+                ADD NEW STOCK
+            </button>
+          )}
           <button className="flex-1 lg:flex-none flex items-center justify-center gap-3 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-white font-bold hover:bg-white/10 transition-all text-sm">
             <ShieldCheck size={18} className="text-emerald-400" />
-            STAMP SCANNER
-          </button>
-          <button 
-            onClick={() => { setEditingProduct(null); setShowAddModal(true); }}
-            className="flex-1 lg:flex-none flex items-center justify-center gap-3 premium-gradient px-8 py-4 rounded-2xl text-white font-black shadow-xl shadow-brand-blue/20 hover:scale-[1.02] transition-all text-sm"
-          >
-            <Plus size={20} />
-            ADD NEW PRODUCT
+            COMPLIANCE
           </button>
         </div>
       </div>
@@ -105,7 +114,7 @@ export default function LiquorInventory() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
           <input
             type="text"
-            placeholder="Search vault (e.g. Whiskey)..."
+            placeholder="Search vault..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white font-semibold outline-none focus:ring-2 focus:ring-brand-blue/50 text-sm"
@@ -123,7 +132,7 @@ export default function LiquorInventory() {
                 <th className="px-8 py-6 text-slate-500 text-[10px] font-black uppercase tracking-[2px]">Unit Price</th>
                 <th className="px-8 py-6 text-slate-500 text-[10px] font-black uppercase tracking-[2px]">On Hand</th>
                 <th className="px-8 py-6 text-slate-500 text-[10px] font-black uppercase tracking-[2px]">Compliance</th>
-                <th className="px-8 py-6 text-center text-slate-500 text-[10px] font-black uppercase tracking-[2px]">Manage</th>
+                {canManage && <th className="px-8 py-6 text-center text-slate-500 text-[10px] font-black uppercase tracking-[2px]">Manage</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -158,25 +167,27 @@ export default function LiquorInventory() {
                       "text-emerald-400 bg-emerald-400/10"
                     )}>
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      SYSTEM VERIFIED
+                      VERIFIED
                     </span>
                   </td>
-                  <td className="px-8 py-6 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <button 
-                        onClick={() => { setEditingProduct(item); setFormData(item); setShowAddModal(true); }}
-                        className="p-2.5 rounded-xl text-slate-600 hover:bg-brand-blue/20 hover:text-brand-blue transition-all"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button 
-                        onClick={() => deleteProduct(item.id)}
-                        className="p-2.5 rounded-xl text-slate-600 hover:bg-red-500/10 hover:text-red-500 transition-all"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
+                  {canManage ? (
+                      <td className="px-8 py-6">
+                        <div className="flex items-center justify-center gap-2">
+                        <button 
+                            onClick={() => { setEditingProduct(item); setFormData(item); setShowAddModal(true); }}
+                            className="p-2.5 rounded-xl text-slate-600 hover:bg-brand-blue/20 hover:text-brand-blue transition-all"
+                        >
+                            <Edit2 size={16} />
+                        </button>
+                        <button 
+                            onClick={() => deleteProduct(item.id, currentUser?.name || 'System')}
+                            className="p-2.5 rounded-xl text-slate-600 hover:bg-red-500/10 hover:text-red-500 transition-all"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                        </div>
+                      </td>
+                  ) : null }
                 </tr>
               ))}
             </tbody>

@@ -23,6 +23,24 @@ export interface Order {
   timestamp: string;
 }
 
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  type: 'STOCK_ADD' | 'ALERT' | 'INFO';
+}
+
+export interface AuditEntry {
+  id: string;
+  userId: string;
+  userName: string;
+  action: string;
+  details: string;
+  timestamp: string;
+}
+
 interface BusinessState {
   businessName: string;
   businessType: BusinessType;
@@ -31,25 +49,32 @@ interface BusinessState {
   products: Product[];
   activeOrders: Order[];
   completedOrders: Order[];
+  notifications: Notification[];
+  auditTrail: AuditEntry[];
   
   // Configuration Functions
   updateSettings: (settings: Partial<{ businessName: string; businessType: BusinessType; currency: string; taxRate: number }>) => void;
   
   // Product Management
-  addProduct: (product: Product) => void;
-  updateProduct: (id: string, updates: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
-  updateStock: (productId: string, quantity: number) => void;
+  addProduct: (product: Product, adminName: string) => void;
+  updateProduct: (id: string, updates: Partial<Product>, adminName: string) => void;
+  deleteProduct: (id: string, adminName: string) => void;
+  updateStock: (productId: string, quantity: number, action: 'SALE' | 'MANUAL', initiator: string) => void;
   
   // Order Management
   createOrder: (order: Order) => void;
   dispatchOrder: (orderId: string) => void;
-  completeOrder: (orderId: string) => void;
+  completeOrder: (orderId: string, initiator: string) => void;
   voidOrder: (orderId: string) => void;
   
   // Reporting & Stats
   getSalesByWaiter: () => Record<string, number>;
   getWaiterStats: (waiterId: string) => { settled: number; unsettled: number; total: number };
+  
+  // Internal Utility
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
+  markNotificationsRead: () => void;
+  addAudit: (entry: Omit<AuditEntry, 'id' | 'timestamp'>) => void;
 }
 
 export const useBusinessStore = create<BusinessState>()(
@@ -69,20 +94,93 @@ export const useBusinessStore = create<BusinessState>()(
       ],
       activeOrders: [],
       completedOrders: [],
+      notifications: [],
+      auditTrail: [],
 
       updateSettings: (settings) => set((state) => ({ ...state, ...settings })),
 
+      addNotification: (n) => set((state) => ({
+        notifications: [{ 
+          ...n, 
+          id: `NT-${Date.now()}`, 
+          timestamp: new Date().toISOString(), 
+          read: false 
+        }, ...state.notifications].slice(0, 50)
+      })),
+
+      markNotificationsRead: () => set((state) => ({
+        notifications: state.notifications.map(n => ({ ...n, read: true }))
+      })),
+
+      addAudit: (a) => set((state) => ({
+        auditTrail: [{
+          ...a,
+          id: `AU-${Date.now()}`,
+          timestamp: new Date().toISOString()
+        }, ...state.auditTrail].slice(0, 500)
+      })),
+
       // Product Actions
-      addProduct: (product) => set((state) => ({ products: [...state.products, product] })),
-      updateProduct: (id, updates) => set((state) => ({
-        products: state.products.map(p => p.id === id ? { ...p, ...updates } : p)
-      })),
-      deleteProduct: (id) => set((state) => ({
-        products: state.products.filter(p => p.id !== id)
-      })),
-      updateStock: (productId, quantity) => set((state) => ({
-        products: state.products.map(p => p.id === productId ? { ...p, stock: p.stock - quantity } : p)
-      })),
+      addProduct: (product, adminName) => {
+        set((state) => ({ products: [...state.products, product] }));
+        get().addNotification({
+          title: 'Stock Addition',
+          message: `${adminName} added ${product.name} to inventory.`,
+          type: 'STOCK_ADD'
+        });
+        get().addAudit({
+          userId: 'ADMIN',
+          userName: adminName,
+          action: 'ADD_PRODUCT',
+          details: `Added ${product.name} at ${product.price}`
+        });
+      },
+
+      updateProduct: (id, updates, adminName) => {
+        set((state) => ({
+          products: state.products.map(p => p.id === id ? { ...p, ...updates } : p)
+        }));
+        get().addAudit({
+          userId: 'ADMIN',
+          userName: adminName,
+          action: 'UPDATE_PRODUCT',
+          details: `Updated ${id}: ${JSON.stringify(updates)}`
+        });
+      },
+
+      deleteProduct: (id, adminName) => {
+        const product = get().products.find(p => p.id === id);
+        set((state) => ({
+          products: state.products.filter(p => p.id !== id)
+        }));
+        get().addAudit({
+          userId: 'ADMIN',
+          userName: adminName,
+          action: 'DELETE_PRODUCT',
+          details: `Deleted ${product?.name || id}`
+        });
+      },
+
+      updateStock: (productId, quantity, action, initiator) => {
+        set((state) => ({
+          products: state.products.map(p => p.id === productId ? { ...p, stock: action === 'SALE' ? p.stock - quantity : p.stock + quantity } : p)
+        }));
+        
+        if (action === 'MANUAL') {
+          const product = get().products.find(p => p.id === productId);
+          get().addNotification({
+            title: 'Stock Updated',
+            message: `${initiator} updated ${product?.name} stock by ${quantity}.`,
+            type: 'STOCK_ADD'
+          });
+          get().addAudit({
+            userId: 'ADMIN',
+            userName: initiator,
+            action: 'MANUAL_STOCK_UPDATE',
+            details: `Updated ${product?.name} by ${quantity}`
+          });
+        }
+      },
 
       // Order Actions
       createOrder: (order) => set((state) => ({ 
@@ -93,18 +191,24 @@ export const useBusinessStore = create<BusinessState>()(
         activeOrders: state.activeOrders.map(o => o.id === orderId ? { ...o, status: 'DISPATCHED' } : o)
       })),
 
-      completeOrder: (orderId) => {
+      completeOrder: (orderId, initiator) => {
         const order = get().activeOrders.find(o => o.id === orderId);
         if (order) {
-          // Deduct stock for each item in the order
           order.items.forEach(item => {
-            get().updateStock(item.id, item.quantity);
+            get().updateStock(item.id, item.quantity, 'SALE', initiator);
           });
           
           set((state) => ({
             activeOrders: state.activeOrders.filter(o => o.id !== orderId),
             completedOrders: [...state.completedOrders, { ...order, status: 'PAID' }]
           }));
+
+          get().addAudit({
+            userId: 'COUNTER',
+            userName: initiator,
+            action: 'ORDER_PAID',
+            details: `Settled order ${orderId} - ${get().currency} ${order.total}`
+          });
         }
       },
 
@@ -125,8 +229,8 @@ export const useBusinessStore = create<BusinessState>()(
         const completed = get().completedOrders.filter(o => o.waiterId === waiterId);
         const pending = get().activeOrders.filter(o => o.waiterId === waiterId);
         
-        const settled = completed.reduce((sum, o) => sum + o.total, 0);
-        const unsettled = pending.reduce((sum, o) => sum + o.total, 0);
+        const settled = completed.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+        const unsettled = pending.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
         
         return {
           settled,

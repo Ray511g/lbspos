@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from 'react';
-import { Printer, Download, Share2, X, ShieldCheck, CheckCircle, FileText } from 'lucide-react';
+import { Printer, Download, Share2, X, ShieldCheck, CheckCircle, FileText, Wine } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useBusinessStore } from '@/store/businessStore';
 import { cn } from '@/lib/utils';

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { db } from '@/lib/firebase';
+import { collection, doc, setDoc, deleteDoc, updateDoc, addDoc, getDoc } from 'firebase/firestore';
 
 export type BusinessType = 'LIQUOR_STORE' | 'BAR_RESTAURANT' | 'WHOLESALE';
 
@@ -52,84 +54,92 @@ interface BusinessState {
   notifications: Notification[];
   auditTrail: AuditEntry[];
   
+  // Real-time Sync (Used by SyncManager)
+  setFirestoreState: (state: Partial<BusinessState>) => void;
+  
   // Configuration Functions
   updateSettings: (settings: Partial<{ businessName: string; businessType: BusinessType; currency: string; taxRate: number }>) => void;
   
   // Product Management
-  addProduct: (product: Product, adminName: string) => void;
-  updateProduct: (id: string, updates: Partial<Product>, adminName: string) => void;
-  deleteProduct: (id: string, adminName: string) => void;
-  updateStock: (productId: string, quantity: number, action: 'SALE' | 'MANUAL', initiator: string) => void;
+  addProduct: (product: Product, adminName: string) => Promise<void>;
+  updateProduct: (id: string, updates: Partial<Product>, adminName: string) => Promise<void>;
+  deleteProduct: (id: string, adminName: string) => Promise<void>;
+  updateStock: (productId: string, quantity: number, action: 'SALE' | 'MANUAL', initiator: string) => Promise<void>;
   
   // Order Management
-  createOrder: (order: Order) => void;
-  dispatchOrder: (orderId: string, initiator: string) => void;
-  completeOrder: (orderId: string, initiator: string) => void;
-  voidOrder: (orderId: string) => void;
-  recordSale: (items: any[], total: number, initiator: string) => void;
+  createOrder: (order: Order) => Promise<void>;
+  dispatchOrder: (orderId: string, initiator: string) => Promise<void>;
+  completeOrder: (orderId: string, initiator: string) => Promise<void>;
+  voidOrder: (orderId: string) => Promise<void>;
+  recordSale: (items: any[], total: number, initiator: string) => Promise<void>;
   
   // Reporting & Stats
   getSalesByWaiter: () => Record<string, number>;
   getWaiterStats: (waiterId: string) => { settled: number; unsettled: number; total: number };
   
   // Internal Utility
-  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
-  markNotificationsRead: () => void;
-  addAudit: (entry: Omit<AuditEntry, 'id' | 'timestamp'>) => void;
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => Promise<void>;
+  markNotificationsRead: () => Promise<void>;
+  addAudit: (entry: Omit<AuditEntry, 'id' | 'timestamp'>) => Promise<void>;
 }
 
 export const useBusinessStore = create<BusinessState>()(
   persist(
     (set, get) => ({
-      businessName: 'Kenya Liquor Master',
+      businessName: 'Business HQ',
       businessType: 'LIQUOR_STORE',
       currency: 'KES',
       taxRate: 16,
-      products: [
-        { id: 'L1', name: 'Johnnie Walker Black 750ml', price: 4200, category: 'Whiskey', stock: 24, volume: '750ml' },
-        { id: 'L2', name: 'Gilbeys Gin 750ml', price: 1450, category: 'Gin', stock: 112, volume: '750ml' },
-        { id: 'L3', name: 'Tusker Lager 500ml', price: 230, category: 'Beer', stock: 450, volume: '500ml', type: 'Returnable' },
-        { id: 'L4', name: 'White Cap 500ml', price: 240, category: 'Beer', stock: 320, volume: '500ml', type: 'Returnable' },
-        { id: 'L5', name: 'Hennessy VS 700ml', price: 6800, category: 'Cognac', stock: 12, volume: '700ml' },
-        { id: 'M1', name: 'Coca Cola 1.25L', price: 140, category: 'Mixers', stock: 80, volume: '1.25L' },
-      ],
+      products: [],
       activeOrders: [],
       completedOrders: [],
       notifications: [],
       auditTrail: [],
 
-      updateSettings: (settings) => set((state) => ({ ...state, ...settings })),
+      setFirestoreState: (state) => set((s) => ({ ...s, ...state })),
 
-      addNotification: (n) => set((state) => ({
-        notifications: [{ 
-          ...n, 
-          id: `NT-${Date.now()}`, 
-          timestamp: new Date().toISOString(), 
-          read: false 
-        }, ...state.notifications].slice(0, 50)
-      })),
+      updateSettings: async (settings) => {
+          set((state) => ({ ...state, ...settings }));
+          await setDoc(doc(db, "settings", "global"), {
+              businessName: get().businessName,
+              currency: get().currency,
+              taxRate: get().taxRate,
+              updatedAt: new Date().toISOString()
+          }, { merge: true });
+      },
 
-      markNotificationsRead: () => set((state) => ({
-        notifications: state.notifications.map(n => ({ ...n, read: true }))
-      })),
+      addNotification: async (n) => {
+          const newNotif = {
+              ...n,
+              timestamp: new Date().toISOString(),
+              read: false
+          };
+          await addDoc(collection(db, "notifications"), newNotif);
+      },
 
-      addAudit: (a) => set((state) => ({
-        auditTrail: [{
-          ...a,
-          id: `AU-${Date.now()}`,
-          timestamp: new Date().toISOString()
-        }, ...state.auditTrail].slice(0, 500)
-      })),
+      markNotificationsRead: async () => {
+          const unread = get().notifications.filter(n => !n.read);
+          for (const n of unread) {
+              await updateDoc(doc(db, "notifications", n.id), { read: true });
+          }
+      },
+
+      addAudit: async (a) => {
+          await addDoc(collection(db, "auditTrail"), {
+              ...a,
+              timestamp: new Date().toISOString()
+          });
+      },
 
       // Product Actions
-      addProduct: (product, adminName) => {
-        set((state) => ({ products: [...state.products, product] }));
-        get().addNotification({
+      addProduct: async (product, adminName) => {
+        await setDoc(doc(db, "products", product.id), product);
+        await get().addNotification({
           title: 'Stock Addition',
           message: `${adminName} added ${product.name} to inventory.`,
           type: 'STOCK_ADD'
         });
-        get().addAudit({
+        await get().addAudit({
           userId: 'ADMIN',
           userName: adminName,
           action: 'ADD_PRODUCT',
@@ -137,11 +147,9 @@ export const useBusinessStore = create<BusinessState>()(
         });
       },
 
-      updateProduct: (id, updates, adminName) => {
-        set((state) => ({
-          products: state.products.map(p => p.id === id ? { ...p, ...updates } : p)
-        }));
-        get().addAudit({
+      updateProduct: async (id, updates, adminName) => {
+        await updateDoc(doc(db, "products", id), updates);
+        await get().addAudit({
           userId: 'ADMIN',
           userName: adminName,
           action: 'UPDATE_PRODUCT',
@@ -149,12 +157,10 @@ export const useBusinessStore = create<BusinessState>()(
         });
       },
 
-      deleteProduct: (id, adminName) => {
+      deleteProduct: async (id, adminName) => {
         const product = get().products.find(p => p.id === id);
-        set((state) => ({
-          products: state.products.filter(p => p.id !== id)
-        }));
-        get().addAudit({
+        await deleteDoc(doc(db, "products", id));
+        await get().addAudit({
           userId: 'ADMIN',
           userName: adminName,
           action: 'DELETE_PRODUCT',
@@ -162,19 +168,20 @@ export const useBusinessStore = create<BusinessState>()(
         });
       },
 
-      updateStock: (productId, quantity, action, initiator) => {
-        set((state) => ({
-          products: state.products.map(p => p.id === productId ? { ...p, stock: action === 'SALE' ? p.stock - quantity : p.stock + quantity } : p)
-        }));
+      updateStock: async (productId, quantity, action, initiator) => {
+        const product = get().products.find(p => p.id === productId);
+        if (!product) return;
+
+        const newStock = action === 'SALE' ? product.stock - quantity : product.stock + quantity;
+        await updateDoc(doc(db, "products", productId), { stock: newStock });
         
         if (action === 'MANUAL') {
-          const product = get().products.find(p => p.id === productId);
-          get().addNotification({
+          await get().addNotification({
             title: 'Stock Updated',
             message: `${initiator} updated ${product?.name} stock by ${quantity}.`,
             type: 'STOCK_ADD'
           });
-          get().addAudit({
+          await get().addAudit({
             userId: 'ADMIN',
             userName: initiator,
             action: 'MANUAL_STOCK_UPDATE',
@@ -184,23 +191,18 @@ export const useBusinessStore = create<BusinessState>()(
       },
 
       // Order Actions
-      createOrder: (order) => set((state) => ({ 
-        activeOrders: [...state.activeOrders, order] 
-      })),
+      createOrder: async (order) => {
+          await setDoc(doc(db, "activeOrders", order.id), order);
+      },
 
-      dispatchOrder: (orderId, initiator) => {
+      dispatchOrder: async (orderId, initiator) => {
         const order = get().activeOrders.find(o => o.id === orderId);
         if (order && order.status === 'PENDING') {
-          // Deduct stock when dispatched
-          order.items.forEach(item => {
-            get().updateStock(item.id, item.quantity, 'SALE', initiator);
-          });
-          
-          set((state) => ({
-            activeOrders: state.activeOrders.map(o => o.id === orderId ? { ...o, status: 'DISPATCHED' } : o)
-          }));
-
-          get().addAudit({
+          for (const item of order.items) {
+            await get().updateStock(item.id, item.quantity, 'SALE', initiator);
+          }
+          await updateDoc(doc(db, "activeOrders", orderId), { status: 'DISPATCHED' });
+          await get().addAudit({
             userId: 'COUNTER',
             userName: initiator,
             action: 'DISPATCH_ORDER',
@@ -209,38 +211,32 @@ export const useBusinessStore = create<BusinessState>()(
         }
       },
 
-      completeOrder: (orderId, initiator) => {
+      completeOrder: async (orderId, initiator) => {
         const order = get().activeOrders.find(o => o.id === orderId);
         if (order) {
-          // If it was still pending for some reason, deduct stock now
           if (order.status === 'PENDING') {
-            order.items.forEach(item => {
-              get().updateStock(item.id, item.quantity, 'SALE', initiator);
-            });
+            for (const item of order.items) {
+               await get().updateStock(item.id, item.quantity, 'SALE', initiator);
+            }
           }
-          
-          set((state) => ({
-            activeOrders: state.activeOrders.filter(o => o.id !== orderId),
-            completedOrders: [...state.completedOrders, { ...order, status: 'PAID' }]
-          }));
-
-          get().addAudit({
+          await deleteDoc(doc(db, "activeOrders", orderId));
+          await setDoc(doc(db, "completedOrders", orderId), { ...order, status: 'PAID' });
+          await get().addAudit({
             userId: 'COUNTER',
             userName: initiator,
             action: 'ORDER_PAID',
-            details: `Settled order ${orderId} - ${get().currency} ${order.total}`
+            details: `Settled order ${orderId}`
           });
         }
       },
 
-      recordSale: (items, total, initiator) => {
-        // Direct counter sale - deduct stock immediately
-        items.forEach(item => {
-          get().updateStock(item.id, item.quantity, 'SALE', initiator);
-        });
-
+      recordSale: async (items, total, initiator) => {
+        for (const item of items) {
+          await get().updateStock(item.id, item.quantity, 'SALE', initiator);
+        }
+        const orderId = `INV-${Date.now()}`;
         const newOrder: Order = {
-          id: `INV-${Date.now()}`,
+          id: orderId,
           waiterId: 'COUNTER',
           waiterName: initiator,
           items: [...items],
@@ -248,36 +244,28 @@ export const useBusinessStore = create<BusinessState>()(
           status: 'PAID',
           timestamp: new Date().toISOString()
         };
-
-        set((state) => ({
-          completedOrders: [...state.completedOrders, newOrder]
-        }));
-
-        get().addAudit({
+        await setDoc(doc(db, "completedOrders", orderId), newOrder);
+        await get().addAudit({
           userId: 'COUNTER',
           userName: initiator,
           action: 'DIRECT_SALE',
-          details: `Direct counter sale - ${get().currency} ${total} - Stock reduced.`
+          details: `Direct sale - Stock reduced.`
         });
       },
 
-      voidOrder: (orderId) => {
+      voidOrder: async (orderId) => {
         const order = get().activeOrders.find(o => o.id === orderId);
         if (order && order.status === 'DISPATCHED') {
-          // If it was already dispatched (stock deducted), add stock back
-          order.items.forEach(item => {
-            get().updateStock(item.id, item.quantity, 'MANUAL', 'SYSTEM_VOID');
-          });
+          for (const item of order.items) {
+            await get().updateStock(item.id, item.quantity, 'MANUAL', 'SYSTEM_VOID');
+          }
         }
-        set((state) => ({
-          activeOrders: state.activeOrders.filter(o => o.id !== orderId)
-        }));
+        await deleteDoc(doc(db, "activeOrders", orderId));
       },
 
       getSalesByWaiter: () => {
-        const completed = get().completedOrders;
         const sales: Record<string, number> = {};
-        completed.forEach(o => {
+        get().completedOrders.forEach(o => {
           sales[o.waiterName] = (sales[o.waiterName] || 0) + (Number(o.total) || 0);
         });
         return sales;
@@ -286,15 +274,9 @@ export const useBusinessStore = create<BusinessState>()(
       getWaiterStats: (waiterId) => {
         const completed = get().completedOrders.filter(o => o.waiterId === waiterId);
         const pending = get().activeOrders.filter(o => o.waiterId === waiterId);
-        
         const settled = completed.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
         const unsettled = pending.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-        
-        return {
-          settled,
-          unsettled,
-          total: settled + unsettled
-        };
+        return { settled, unsettled, total: settled + unsettled };
       }
     }),
     { name: 'business-storage' }

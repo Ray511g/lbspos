@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { db } from '@/lib/firebase';
+import { collection, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 export type UserRole = 'ADMIN' | 'MANAGER' | 'CASHIER' | 'WAITER';
 
@@ -15,9 +17,12 @@ interface AuthState {
   users: User[];
   login: (pin: string) => boolean;
   logout: () => void;
-  addUser: (user: User) => void;
-  removeUser: (id: string) => void;
-  updateUserPin: (id: string, newPin: string) => void;
+  addUser: (user: User) => Promise<void>;
+  removeUser: (id: string) => Promise<void>;
+  updateUserPin: (id: string, newPin: string) => Promise<void>;
+  
+  // Real-time Sync
+  setFirestoreUsers: (users: User[]) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -27,11 +32,11 @@ export const useAuthStore = create<AuthState>()(
       users: [
         { id: '1', name: 'Super Admin', pin: '0000', role: 'ADMIN' },
         { id: '2', name: 'Main Cashier', pin: '1234', role: 'CASHIER' },
-        { id: '3', name: 'Waiter John', pin: '1111', role: 'WAITER' },
-        { id: '4', name: 'Waitress Mercy', pin: '2222', role: 'WAITER' },
-        { id: '5', name: 'Night Manager', pin: '3333', role: 'MANAGER' },
       ],
-      login: (pin: string) => {
+      
+      setFirestoreUsers: (users) => set({ users: users.length > 0 ? users : get().users }),
+
+      login: (pin) => {
         const user = get().users.find((u) => u.pin === pin);
         if (user) {
           set({ currentUser: user });
@@ -39,12 +44,20 @@ export const useAuthStore = create<AuthState>()(
         }
         return false;
       },
+
       logout: () => set({ currentUser: null }),
-      addUser: (user) => set((state) => ({ users: [...state.users, user] })),
-      removeUser: (id) => set((state) => ({ users: state.users.filter((u) => u.id !== id) })),
-      updateUserPin: (id, newPin) => set((state) => ({
-        users: state.users.map((u) => u.id === id ? { ...u, pin: newPin } : u)
-      })),
+
+      addUser: async (user) => {
+          await setDoc(doc(db, "users", user.id), user);
+      },
+
+      removeUser: async (id) => {
+          await deleteDoc(doc(db, "users", id));
+      },
+
+      updateUserPin: async (id, newPin) => {
+          await updateDoc(doc(db, "users", id), { pin: newPin });
+      },
     }),
     { name: 'auth-storage' }
   )

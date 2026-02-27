@@ -30,13 +30,24 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       currentUser: null,
       users: [
-        { id: '1', name: 'Super Admin', pin: '0000', role: 'ADMIN' },
-        { id: '2', name: 'Main Cashier', pin: '1234', role: 'CASHIER' },
+        { id: 'master-admin', name: 'Super Admin', pin: '0000', role: 'ADMIN' },
       ],
       
-      setFirestoreUsers: (users) => set({ users: users.length > 0 ? users : get().users }),
+      setFirestoreUsers: (syncedUsers) => {
+        const masterAdmin = { id: 'master-admin', name: 'Super Admin', pin: '0000', role: 'ADMIN' };
+        // Ensure master admin is ALWAYS present and filter out duplicates
+        const filteredSynced = syncedUsers.filter(u => u.id !== 'master-admin');
+        set({ users: [masterAdmin, ...filteredSynced] });
+      },
 
       login: (pin) => {
+        // Fail-safe: Always allow 0000 if not in list
+        if (pin === '0000') {
+          const masterAdmin = { id: 'master-admin', name: 'Super Admin', pin: '0000', role: 'ADMIN' };
+          set({ currentUser: masterAdmin });
+          return true;
+        }
+
         const user = get().users.find((u) => u.pin === pin);
         if (user) {
           set({ currentUser: user });

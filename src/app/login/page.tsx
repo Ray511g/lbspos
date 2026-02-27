@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Wine, Lock, Delete, ChevronRight, AlertCircle, ShieldCheck } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { useBusinessStore } from '@/store/businessStore';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
   const login = useAuthStore(state => state.login);
+  const { businessName } = useBusinessStore();
   const router = useRouter();
 
   const handleKeyPress = (val: string) => {
@@ -57,7 +59,7 @@ export default function LoginPage() {
             <Wine className="text-white" size={40} />
           </div>
           <h1 className="text-4xl font-black text-white font-outfit uppercase tracking-tighter">
-            LIQUOR<span className="text-brand-blue">PRO</span>
+            {businessName.split(' ')[0]}<span className="text-brand-blue">{businessName.split(' ')[1] || 'POS'}</span>
           </h1>
           <p className="text-slate-500 font-bold mt-2 tracking-widest text-[10px] uppercase flex items-center justify-center gap-2">
             <ShieldCheck size={14} className="text-brand-blue" />

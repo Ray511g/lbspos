@@ -18,7 +18,8 @@ import {
   X,
   Bell,
   Activity,
-  ShieldAlert
+  ShieldAlert,
+  Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -162,12 +163,7 @@ export default function Sidebar() {
           </nav>
 
           {/* Footer Area */}
-          <div className="p-6 mt-auto">
-            <div className={cn(
-                "bg-navy-900/50 border border-white/5 rounded-[2rem] overflow-hidden transition-all",
-                collapsed && !mobileOpen ? "p-2" : "p-4"
-            )}>
-              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-brand-blue font-black shrink-0 border border-white/5">
                   {currentUser?.name.charAt(0)}
                 </div>
@@ -184,6 +180,54 @@ export default function Sidebar() {
                 )}
               </div>
             </div>
+            
+            {/* Notification Bell (Only for Cashier/Admin) */}
+            {(currentUser?.role === 'CASHIER' || currentUser?.role === 'ADMIN') && (
+              <div className="mt-4 relative">
+                 <button 
+                    onClick={() => {
+                        setShowNotifications(!showNotifications);
+                        if (!showNotifications) markNotificationsRead();
+                    }}
+                    className={cn(
+                        "w-full flex items-center gap-4 px-4 py-4 rounded-[2rem] border transition-all relative overflow-hidden",
+                        unreadCount > 0 ? "bg-brand-blue/10 border-brand-blue/30 text-brand-blue" : "bg-white/5 border-white/5 text-slate-500"
+                    )}
+                 >
+                    <div className="relative">
+                        <Bell size={20} />
+                        {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-navy-950 animate-bounce" />}
+                    </div>
+                    {(!collapsed || mobileOpen) && <span className="text-[10px] font-black uppercase tracking-widest">Live Alerts</span>}
+                 </button>
+
+                 <AnimatePresence>
+                    {showNotifications && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            className="absolute bottom-full left-0 w-72 mb-4 bg-navy-900 border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden z-[60]"
+                        >
+                            <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-white">Recent Orders</span>
+                                <button onClick={() => setShowNotifications(false)} className="text-slate-500 hover:text-white"><X size={14}/></button>
+                            </div>
+                            <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                                {notifications.length === 0 && <div className="p-8 text-center text-[10px] font-bold text-slate-600 uppercase">No new alerts</div>}
+                                {notifications.map(n => (
+                                    <div key={n.id} className="p-4 border-b border-white/5 hover:bg-white/5 transition-colors">
+                                        <div className="text-xs font-bold text-white mb-1">{n.title}</div>
+                                        <div className="text-[10px] text-slate-500 leading-relaxed">{n.message}</div>
+                                        <div className="text-[8px] text-slate-600 mt-2 flex items-center gap-1 font-black uppercase"><Clock size={8}/> {new Date(n.timestamp).toLocaleTimeString()}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
+                 </AnimatePresence>
+              </div>
+            )}
           </div>
 
           {/* Toggle Button for Desktop */}

@@ -143,11 +143,11 @@ export default function ReceiptPreview({
                     <span>{currency} {subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-xs font-bold text-slate-500">
-                    <span className="tracking-widest capitalize">VAT (16%)</span>
+                    <span className="tracking-widest capitalize">VAT ({useBusinessStore.getState().taxRate}%)</span>
                     <span>{currency} {tax.toLocaleString()}</span>
                 </div>
                 <div className="h-4" />
-                <div className="flex justify-between items-center text-4xl font-black text-slate-950 tracking-tighter">
+                <div className="flex justify-between items-center text-3xl sm:text-4xl font-black text-slate-950 tracking-tighter">
                     <span>TOTAL</span>
                     <div className="flex flex-col items-end">
                         <span className="leading-none">{currency} {total.toLocaleString()}</span>
@@ -213,12 +213,16 @@ export default function ReceiptPreview({
             position: fixed; 
             left: 0; 
             top: 0; 
-            width: 80mm; 
-            margin: 0; 
-            padding: 10mm;
+            width: 100%; 
+            max-width: 80mm;
+            margin: 0 auto; 
+            padding: 5mm;
             background: white;
           }
           .custom-scrollbar { overflow: visible !important; }
+        }
+        @media (max-width: 640px) {
+           .receipt-print-area { padding: 1.5rem !important; }
         }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }

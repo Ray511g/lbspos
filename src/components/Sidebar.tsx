@@ -7,7 +7,6 @@ import {
   LayoutDashboard, 
   ShoppingCart, 
   Package, 
-  Users, 
   Settings, 
   BarChart3, 
   ChevronLeft, 
@@ -46,80 +45,80 @@ export default function Sidebar() {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // Filter items based on CURRENT user role immediately
   const eligibleItems = useMemo(() => {
     return menuItems.filter(item => item.roles.includes(currentUser?.role || ''));
   }, [currentUser?.role]);
 
   return (
     <>
-      {/* Mobile Toggle */}
-      <div className="lg:hidden fixed top-4 left-4 z-[60] flex gap-2">
+      {/* Mobile Header Overlay (Small Devices Only) */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-navy-950/80 backdrop-blur-xl border-b border-white/5 h-16 z-[55] flex items-center justify-between px-6">
+        <div className="flex items-center gap-3">
+            <Wine className="text-brand-blue" size={20} />
+            <span className="font-black text-sm text-white uppercase tracking-tighter">
+                {businessName.split(' ')[0]}<span className="text-brand-blue">{businessName.split(' ')[1] || 'POS'}</span>
+            </span>
+        </div>
         <button 
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="w-12 h-12 bg-navy-900 border border-white/10 rounded-2xl flex items-center justify-center text-white shadow-2xl"
+          className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white"
         >
-          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
       <AnimatePresence mode="wait">
         <motion.aside
-          key={currentUser?.id} // Force re-render on user shift
+          key={currentUser?.id}
           initial={mobileOpen ? { x: -300 } : undefined}
           animate={{ 
             x: 0, 
-            width: mobileOpen ? '280px' : (collapsed ? '80px' : '280px'),
-            position: mobileOpen ? 'fixed' : 'relative'
+            width: mobileOpen ? '280px' : (collapsed ? '90px' : '280px'),
           }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           className={cn(
-            "h-screen bg-navy-950 border-r border-white/10 flex flex-col z-50 transition-all duration-300 ease-in-out shadow-2xl",
-            mobileOpen && "fixed top-0 left-0"
+            "h-screen bg-navy-950 border-r border-white/10 flex flex-col z-50 transition-all duration-300 ease-in-out shadow-2xl overflow-visible",
+            mobileOpen ? "fixed top-0 left-0" : "hidden lg:flex sticky top-0"
           )}
         >
-          {/* Logo Area */}
-          <div className="p-6 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl premium-gradient flex items-center justify-center shrink-0 shadow-lg shadow-brand-blue/20">
-              <Wine className="text-white" size={24} />
+          {/* Logo Section */}
+          <div className="p-8 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-brand-blue/10 flex items-center justify-center shrink-0 border border-brand-blue/20">
+              <Wine className="text-brand-blue" size={28} />
             </div>
             {(!collapsed || mobileOpen) && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="font-black text-xl tracking-tight text-white whitespace-nowrap uppercase"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="font-black text-2xl tracking-tight text-white whitespace-nowrap uppercase italic"
               >
                 {businessName.split(' ')[0]}<span className="text-brand-blue">{businessName.split(' ')[1] || 'POS'}</span>
               </motion.div>
             )}
           </div>
 
-          {/* Notifications */}
-          {currentUser?.role === 'CASHIER' && (
-            <div className="px-6 mb-4">
-               <button 
-                onClick={() => { setShowNotifications(!showNotifications); markNotificationsRead(); }}
-                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center relative text-slate-400 hover:text-white transition-all"
-               >
-                  <Bell size={20} />
-                  {unreadCount > 0 && <span className="absolute top-2 right-4 w-2 h-2 bg-red-500 rounded-full animate-pulse" />}
-                  {(!collapsed || mobileOpen) && <span className="ml-3 font-bold text-xs uppercase tracking-widest italic">Alerts</span>}
-               </button>
-            </div>
-          )}
+          {/* User Status Strip */}
+           {(!collapsed || mobileOpen) && (
+             <div className="px-8 mb-6">
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3 flex items-center gap-3">
+                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                   <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">{currentUser?.role} LEVEL ACCESS</span>
+                </div>
+             </div>
+           )}
 
-          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-            {/* Navigation Groups */}
-            <div className="space-y-6">
+          <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto custom-scrollbar overflow-x-hidden">
+            <div className="space-y-8">
               {['Operation', 'Admin'].map(group => {
                 const groupItems = eligibleItems.filter(item => (item.group === group) || (!item.group && group === 'Operation'));
                 if (groupItems.length === 0) return null;
 
                 return (
-                  <div key={group} className="space-y-2">
-                    {(!collapsed || mobileOpen) && group === 'Admin' && (
+                  <div key={group} className="space-y-3">
+                    {(!collapsed || mobileOpen) && (
                       <div className="px-4 py-2 flex items-center gap-2">
-                        <ShieldAlert size={12} className="text-brand-blue" />
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[2px]">Admin Control</span>
+                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-[3px]">{group}</span>
+                        <div className="h-[1px] flex-1 bg-white/5" />
                       </div>
                     )}
                     {groupItems.map((item) => {
@@ -129,24 +128,28 @@ export default function Sidebar() {
                         <Link key={item.path} href={item.path} onClick={() => setMobileOpen(false)}>
                           <div
                             className={cn(
-                              "flex items-center gap-4 px-4 py-3 rounded-xl transition-all group relative",
+                              "flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all group relative mx-2",
                               active 
-                                ? "bg-brand-blue/10 text-brand-blue border border-brand-blue/20" 
+                                ? "bg-brand-blue text-white shadow-xl shadow-brand-blue/20" 
                                 : "text-slate-400 hover:bg-white/5 hover:text-white"
                             )}
                           >
-                            <item.icon size={22} className={cn(active ? "text-brand-blue" : "group-hover:text-white")} />
+                            <item.icon size={22} className={cn(active ? "text-white" : "group-hover:text-white transition-colors")} />
                             {showLabel && (
                               <motion.span
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                className="font-semibold text-sm whitespace-nowrap"
+                                className="font-bold text-sm whitespace-nowrap"
                               >
                                 {item.label}
                               </motion.span>
                             )}
-                            {active && showLabel && (
-                              <motion.div layoutId="active-nav" className="absolute left-[-1rem] w-1 h-8 bg-brand-blue rounded-r-full" />
+                            
+                            {/* Tooltip for Collapsed State */}
+                            {collapsed && !mobileOpen && (
+                                <div className="absolute left-full ml-4 px-3 py-2 bg-navy-900 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-[100] shadow-2xl">
+                                    {item.label}
+                                </div>
                             )}
                           </div>
                         </Link>
@@ -158,75 +161,53 @@ export default function Sidebar() {
             </div>
           </nav>
 
-          <div className="p-4 border-t border-white/5 space-y-2">
-            <div className="flex items-center gap-3 px-2 py-3 rounded-xl bg-white/5 border border-white/5 overflow-hidden">
-              <div className="w-8 h-8 rounded-full bg-brand-blue/20 flex items-center justify-center text-brand-blue font-black text-xs shrink-0">
-                {currentUser?.name.charAt(0)}
-              </div>
-              {(!collapsed || mobileOpen) && (
-                <div className="min-w-0">
-                  <p className="text-white font-bold text-xs truncate">{currentUser?.name}</p>
-                  <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest">{currentUser?.role}</p>
+          {/* Footer Area */}
+          <div className="p-6 mt-auto">
+            <div className={cn(
+                "bg-navy-900/50 border border-white/5 rounded-[2rem] overflow-hidden transition-all",
+                collapsed && !mobileOpen ? "p-2" : "p-4"
+            )}>
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-brand-blue font-black shrink-0 border border-white/5">
+                  {currentUser?.name.charAt(0)}
                 </div>
-              )}
+                {(!collapsed || mobileOpen) && (
+                  <div className="min-w-0 pr-4">
+                    <p className="text-white font-bold text-xs truncate uppercase tracking-tighter">{currentUser?.name}</p>
+                    <button 
+                        onClick={() => { logout(); window.location.href = '/login'; }}
+                        className="text-[10px] text-red-400 font-black uppercase tracking-widest hover:text-red-300 transition-colors flex items-center gap-1 mt-1"
+                    >
+                        <LogOut size={10} /> TERMINAL LOCK
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-            
-            <button 
-              onClick={() => { logout(); window.location.href = '/login'; }}
-              className="flex items-center gap-4 px-4 py-3 w-full text-slate-400 hover:text-red-400 transition-colors group"
-            >
-              <LogOut size={22} className="group-hover:translate-x-1 transition-transform" />
-              {(!collapsed || mobileOpen) && <span className="font-semibold text-sm">Lock Register</span>}
-            </button>
           </div>
 
+          {/* Toggle Button for Desktop */}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex absolute -right-3 top-20 w-6 h-6 bg-brand-blue rounded-full items-center justify-center text-white border-2 border-navy-950 hover:scale-110 transition-transform z-50 shadow-lg"
+            className="hidden lg:flex absolute -right-4 top-12 w-8 h-8 bg-brand-blue rounded-xl items-center justify-center text-white border-4 border-navy-950 hover:scale-110 transition-transform z-50 shadow-xl"
           >
-            {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
         </motion.aside>
       </AnimatePresence>
 
-      {/* Notifications Popover */}
+      {/* Mobile Backdrop */}
       <AnimatePresence>
-        {showNotifications && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="fixed bottom-20 left-20 z-[70] w-80 glass-card bg-navy-900 border border-white/10 p-6 rounded-[2rem] shadow-2xl"
-          >
-             <div className="flex justify-between items-center mb-6">
-                <h4 className="text-white font-black text-xs uppercase tracking-widest">Alerts Center</h4>
-                <button onClick={() => setShowNotifications(false)} className="text-slate-500 hover:text-white"><X size={16} /></button>
-             </div>
-             <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar pr-2">
-                {notifications.map(n => (
-                  <div key={n.id} className="p-4 rounded-2xl bg-white/5 border border-white/5 relative">
-                     {!n.read && <div className="absolute top-2 right-2 w-2 h-2 bg-brand-blue rounded-full" />}
-                     <p className="text-white font-bold text-[11px] mb-1">{n.title}</p>
-                     <p className="text-slate-400 text-[10px] leading-relaxed">{n.message}</p>
-                     <span className="text-[9px] text-slate-600 mt-2 block font-bold">{new Date(n.timestamp).toLocaleTimeString()}</span>
-                  </div>
-                ))}
-                {notifications.length === 0 && (
-                  <div className="text-center py-8">
-                    <p className="text-slate-600 text-[10px] font-black uppercase">No alerts found</p>
-                  </div>
-                )}
-             </div>
-          </motion.div>
-        )}
+          {mobileOpen && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-md z-40 lg:hidden"
+              onClick={() => setMobileOpen(false)}
+            />
+          )}
       </AnimatePresence>
-
-      {mobileOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
     </>
   );
 }

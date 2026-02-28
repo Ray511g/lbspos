@@ -25,8 +25,8 @@ import { useAuthStore, UserRole } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 
 export default function BusinessEngine() {
-  const { businessName, currency, taxRate, paybill, businessTill, updateSettings, auditTrail } = useBusinessStore();
   const { users, addUser, removeUser, currentUser, updateUserPin } = useAuthStore();
+  const { businessName, currency, taxRate, paybill, paybillAccount, businessTill, updateSettings, auditTrail } = useBusinessStore();
   const router = useRouter();
   
   const [activeTab, setActiveTab] = useState<'settings' | 'staff' | 'audit'>('settings');
@@ -38,6 +38,7 @@ export default function BusinessEngine() {
   const [set_curr, setSetCurr] = useState(currency);
   const [set_tax, setSetTax] = useState(taxRate);
   const [set_paybill, setSetPaybill] = useState(paybill || '');
+  const [set_paybill_acc, setSetPaybillAcc] = useState(paybillAccount || '');
   const [set_till, setSetTill] = useState(businessTill || '');
 
   // Security Check
@@ -65,6 +66,7 @@ export default function BusinessEngine() {
         currency: set_curr, 
         taxRate: set_tax,
         paybill: set_paybill,
+        paybillAccount: set_paybill_acc,
         businessTill: set_till
     });
     alert("Configuration synced successfully!");
@@ -119,26 +121,35 @@ export default function BusinessEngine() {
                         className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none focus:ring-2 focus:ring-brand-blue/50" 
                       />
                    </div>
-                    <div className="grid grid-cols-2 gap-6">
-                       <div className="space-y-2">
-                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">M-Pesa Paybill</label>
-                         <input 
-                             value={set_paybill} 
-                             onChange={e => setSetPaybill(e.target.value)}
-                             placeholder="e.g. 522522"
-                             className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none" 
-                         />
-                       </div>
-                       <div className="space-y-2">
-                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Business Till</label>
-                         <input 
-                             value={set_till} 
-                             onChange={e => setSetTill(e.target.value)}
-                             placeholder="e.g. 123456"
-                             className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none" 
-                         />
-                       </div>
-                    </div>
+                     <div className="grid grid-cols-3 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">M-Pesa Paybill</label>
+                          <input 
+                              value={set_paybill} 
+                              onChange={e => setSetPaybill(e.target.value)}
+                              placeholder="e.g. 522522"
+                              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Account No.</label>
+                          <input 
+                              value={set_paybill_acc} 
+                              onChange={e => setSetPaybillAcc(e.target.value)}
+                              placeholder="e.g. 1001"
+                              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Business Till</label>
+                          <input 
+                              value={set_till} 
+                              onChange={e => setSetTill(e.target.value)}
+                              placeholder="e.g. 123456"
+                              className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none" 
+                          />
+                        </div>
+                     </div>
                    <button onClick={handleUpdateConfig} className="w-full py-5 rounded-2xl premium-gradient text-white font-black flex items-center justify-center gap-3 shadow-xl shadow-brand-blue/20">
                       <Save size={20} /> APPLY LIVE CHANGES
                    </button>

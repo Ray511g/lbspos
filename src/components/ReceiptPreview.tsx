@@ -29,16 +29,21 @@ export default function ReceiptPreview({
   onConfirm,
   isConfirmed = false
 }: ReceiptPreviewProps) {
-  const { businessName, currency, paybill, businessTill } = useBusinessStore();
+  const { businessName, currency, paybill, paybillAccount, businessTill } = useBusinessStore();
   const receiptRef = useRef<HTMLDivElement>(null);
   const now = new Date();
 
   const handlePrint = () => {
-    window.print();
+    if (typeof window !== 'undefined') {
+      window.print();
+    }
   };
 
   const handleDownload = () => {
-    window.print();
+    if (typeof window !== 'undefined') {
+       // Using window.print() as a standard for generating PDF in browsers
+       window.print();
+    }
   };
 
   return (
@@ -112,19 +117,19 @@ export default function ReceiptPreview({
 
             {/* Payment Portal */}
             {(paybill || businessTill) && (
-              <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 mb-10 text-center">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[4px] mb-4">Payment Instructions</p>
-                  <div className="flex justify-center gap-8">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-6 text-center">
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-[4px] mb-3">Payment Portal</p>
+                  <div className="flex justify-center gap-6">
                       {paybill && (
-                        <div>
-                            <span className="text-[9px] font-black text-slate-500 uppercase block mb-1">PAYBILL</span>
-                            <p className="text-lg font-black text-navy-950 tracking-tighter">{paybill}</p>
+                        <div className="text-center">
+                            <span className="text-[8px] font-black text-slate-500 uppercase block mb-1">PAYBILL: {paybill}</span>
+                            <p className="text-sm font-black text-navy-950 tracking-tighter uppercase">ACC: {paybillAccount || 'BUSINESS'}</p>
                         </div>
                       )}
                       {businessTill && (
-                        <div>
-                            <span className="text-[9px] font-black text-slate-500 uppercase block mb-1">BUY GOODS TILL</span>
-                            <p className="text-lg font-black text-brand-blue tracking-tighter">{businessTill}</p>
+                        <div className="text-center">
+                            <span className="text-[8px] font-black text-slate-500 uppercase block mb-1">TILL NUMBER</span>
+                            <p className="text-sm font-black text-brand-blue tracking-tighter">{businessTill}</p>
                         </div>
                       )}
                   </div>

@@ -202,6 +202,8 @@ export default function ReceiptPreview({
             left: 0 !important; 
             top: 0 !important; 
             width: 80mm !important;
+            height: auto !important;
+            overflow: visible !important;
             margin: 0 !important; 
             padding: 4mm !important;
             background: white !important;

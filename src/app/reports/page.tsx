@@ -60,9 +60,6 @@ export default function ReportsPage() {
   const totalRevenue = filteredOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
   const totalOrders = filteredOrders.length;
   
-  const handleExportPDF = () => {
-    window.print();
-  };
 
   return (
     <div className="space-y-10 pb-20 no-print">

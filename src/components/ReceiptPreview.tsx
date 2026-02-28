@@ -60,20 +60,20 @@ export default function ReceiptPreview({
         initial={{ scale: 0.9, y: 30, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
         exit={{ scale: 0.9, y: 30, opacity: 0 }}
-        className="relative w-full max-w-lg bg-white text-slate-950 rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col"
+        className="relative w-[310px] max-h-[85vh] bg-white text-slate-950 rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col"
       >
         {/* Decorative Top Bar */}
         <div className="h-2 w-full premium-gradient" />
 
         {/* Receipt Content Area (Scrollable) */}
-        <div ref={receiptRef} className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar receipt-print-area">
+        <div ref={receiptRef} className="flex-1 overflow-y-auto p-4 custom-scrollbar receipt-print-area max-h-[60vh] sm:max-h-[70vh]">
             {/* Header */}
-            <div className="text-center mb-6">
-                <div className="w-12 h-12 bg-navy-950 rounded-2xl flex items-center justify-center text-white mx-auto mb-3 shadow-lg">
-                    <Wine size={24} className="text-brand-blue" />
+            <div className="text-center mb-4">
+                <div className="w-10 h-10 bg-navy-950 rounded-xl flex items-center justify-center text-white mx-auto mb-2 shadow-lg">
+                    <Wine size={20} className="text-brand-blue" />
                 </div>
-                <h2 className="text-xl font-black uppercase tracking-tighter leading-none mb-1 text-navy-950">{businessName}</h2>
-                <p className="text-[8px] text-slate-500 font-black uppercase tracking-[2px]">Fiscal Receipt</p>
+                <h2 className="text-lg font-black uppercase tracking-tighter leading-none mb-1 text-navy-950">{businessName}</h2>
+                <p className="text-[7px] text-slate-500 font-black uppercase tracking-[2px]">Fiscal Bill</p>
             </div>
 
             {/* Meta Info */}
@@ -101,13 +101,13 @@ export default function ReceiptPreview({
             </div>
 
             {/* Item List */}
-            <div className="space-y-3 mb-6">
+            <div className="space-y-2 mb-4">
                 {items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-start text-[11px]">
+                    <div key={idx} className="flex justify-between items-start text-[10px]">
                         <div className="flex-1">
                             <h4 className="font-bold text-slate-900 uppercase leading-none mb-0.5">{item.name}</h4>
                             <div className="flex items-center gap-2">
-                                <span className="text-[9px] text-slate-500">{item.quantity} x {currency} {item.price.toLocaleString()}</span>
+                                <span className="text-[8px] text-slate-500">{item.quantity} x {currency} {item.price.toLocaleString()}</span>
                             </div>
                         </div>
                         <span className="font-bold text-slate-950">{currency} {(item.price * item.quantity).toLocaleString()}</span>
@@ -137,17 +137,13 @@ export default function ReceiptPreview({
             )}
 
             {/* Totals Section */}
-            <div className="space-y-2 pt-4 border-t border-dashed border-slate-300">
-                <div className="flex justify-between text-[10px] font-bold text-slate-600">
-                    <span>SUBTOTAL</span>
-                    <span>{currency} {subtotal.toLocaleString()}</span>
+            <div className="space-y-1.5 pt-3 border-t border-dashed border-slate-300">
+                <div className="flex justify-between text-[9px] font-bold text-slate-600">
+                    <span>SUB + TAX</span>
+                    <span>{currency} {total.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-[10px] font-bold text-slate-600">
-                    <span>TAX ({useBusinessStore.getState().taxRate}%)</span>
-                    <span>{currency} {tax.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center text-xl font-black text-slate-950 pt-2 border-t border-slate-100 mt-2">
-                    <span>TOTAL</span>
+                <div className="flex justify-between items-center text-lg font-black text-slate-950 pt-1.5 border-t border-slate-100 mt-1.5">
+                    <span>PAYABLE</span>
                     <span>{currency} {total.toLocaleString()}</span>
                 </div>
             </div>

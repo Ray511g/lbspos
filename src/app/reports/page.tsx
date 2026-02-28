@@ -38,10 +38,19 @@ export default function ReportsPage() {
   })));
 
   // Filter application
+  const today = new Date().toLocaleDateString('default', { month: 'long', year: 'numeric' });
+  
   const filteredOrders = completedOrders.filter(o => {
       const matchesWaiter = filterWaiter === 'All' || o.waiterName === filterWaiter;
-      const orderMonth = new Date(o.timestamp).toLocaleString('default', { month: 'long', year: 'numeric' });
-      const matchesMonth = filterMonth === 'All' || orderMonth === filterMonth;
+      const d = new Date(o.timestamp);
+      const orderMonth = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+      const isToday = d.toDateString() === new Date().toDateString();
+      
+      const matchesMonth = filterMonth === 'All' 
+          ? true 
+          : filterMonth === 'Today' 
+              ? isToday 
+              : orderMonth === filterMonth;
       
       const matchesProduct = filterProduct === 'All' || o.items.some(i => i.name === filterProduct);
       
@@ -66,7 +75,7 @@ export default function ReportsPage() {
           <h1 className="text-5xl font-black text-white font-outfit mb-2">Detailed <span className="text-brand-blue">Analytics</span></h1>
           <p className="text-slate-400 font-medium">Filtered overview of filtered movement and financial settlements.</p>
         </div>
-        <div className="flex gap-4 w-full lg:w-auto">
+        <div className="flex flex-wrap gap-4 w-full lg:w-auto">
             <button 
                 onClick={() => setShowFilters(!showFilters)}
                 className={cn(
@@ -77,10 +86,16 @@ export default function ReportsPage() {
                 <Filter size={18} /> Filters
             </button>
             <button 
-                onClick={handleExportPDF}
-                className="flex-1 lg:flex-none flex items-center justify-center gap-3 premium-gradient px-8 py-4 rounded-2xl text-white font-black shadow-xl shadow-brand-blue/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm uppercase tracking-widest"
+                onClick={() => { setFilterMonth('Today'); setTimeout(() => window.print(), 200); }}
+                className="flex-1 lg:flex-none flex items-center justify-center gap-3 bg-emerald-500/10 border border-emerald-500/20 px-8 py-4 rounded-2xl text-emerald-500 font-black shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all text-xs uppercase tracking-widest"
             >
-                <Printer size={18} /> Generate PDF
+                <Download size={18} /> Daily Sales
+            </button>
+            <button 
+                onClick={() => { setFilterMonth('All'); setTimeout(() => window.print(), 200); }}
+                className="flex-1 lg:flex-none flex items-center justify-center gap-3 bg-brand-blue/10 border border-brand-blue/20 px-8 py-4 rounded-2xl text-brand-blue font-black shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all text-xs uppercase tracking-widest"
+            >
+                <FileText size={18} /> Stock Report
             </button>
         </div>
       </div>
@@ -126,6 +141,7 @@ export default function ReportsPage() {
                                 className="w-full bg-navy-950 border border-white/10 rounded-2xl p-4 text-white font-bold outline-none"
                               >
                                   <option value="All">Lifetime History</option>
+                                  <option value="Today">Today's Settlements</option>
                                   {months.map(m => <option key={m} value={m}>{m}</option>)}
                               </select>
                           </div>
@@ -200,11 +216,12 @@ export default function ReportsPage() {
       </div>
 
       {/* DEDICATED PRINT DATA VIEW (Hidden in screen, visible in print) */}
-      <div className="hidden print:block fixed inset-0 bg-white text-black p-10 z-[500]">
+      <div className="hidden print:block fixed inset-0 bg-white text-black p-10 z-[500] pdf-container">
           <div className="text-center mb-10 border-b-2 border-black pb-6">
               <h1 className="text-3xl font-black uppercase">{useBusinessStore.getState().businessName}</h1>
-              <p className="text-sm font-bold mt-2 uppercase tracking-[3px]">Financial Movement Report</p>
+              <p className="text-sm font-bold mt-2 uppercase tracking-[3px]">Financial Movement / Settlement Report</p>
               <div className="flex justify-between mt-6 text-[10px] font-bold uppercase">
+                  <span>Scope: {filterMonth === 'Today' ? "Daily Sales" : filterMonth}</span>
                   <span>Generated: {new Date().toLocaleString()}</span>
                   <span>Currency: {currency}</span>
               </div>
@@ -238,14 +255,37 @@ export default function ReportsPage() {
               </tbody>
               <tfoot>
                   <tr className="bg-slate-50 font-black uppercase text-sm border border-slate-300">
-                      <td colSpan={3} className="p-4 border border-slate-300 text-right tracking-widest underline">Total Aggregated Revenue</td>
+                      <td colSpan={3} className="p-4 border border-slate-300 text-right tracking-widest underline text-[10px]">Total Overdue/Settled Balance</td>
                       <td className="p-4 border border-slate-300 text-right text-lg border-l-2 border-l-black">{currency} {totalRevenue.toLocaleString()}</td>
                   </tr>
               </tfoot>
           </table>
 
+          {/* STOCK AUDIT ADDON */}
+          <div className="mt-12 page-break-before">
+              <h3 className="text-lg font-black uppercase border-b-2 border-black mb-4">Live Inventory Audit</h3>
+              <table className="w-full text-left border-collapse border border-slate-300">
+                  <thead>
+                      <tr className="bg-slate-100 text-[10px] font-bold uppercase border border-slate-300">
+                          <th className="p-4 border border-slate-300">Inventory Item</th>
+                          <th className="p-4 border border-slate-300">Current Stock</th>
+                          <th className="p-4 border border-slate-300 text-right">Unit Value</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      {products.map(p => (
+                          <tr key={p.id} className="text-[10px] border border-slate-300">
+                              <td className="p-4 border border-slate-300 font-bold uppercase">{p.name}</td>
+                              <td className="p-4 border border-slate-300 font-black">{p.stock} Units Remaining</td>
+                              <td className="p-4 border border-slate-300 text-right">{currency} {p.price.toLocaleString()}</td>
+                          </tr>
+                      ))}
+                  </tbody>
+              </table>
+          </div>
+
           <div className="mt-10 text-center text-[8px] font-bold text-slate-400 uppercase tracking-widest">
-              End of Automated Financial Document
+              End of Automated Financial & Inventory Document
           </div>
       </div>
 

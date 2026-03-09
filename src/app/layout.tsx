@@ -10,8 +10,15 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata: Metadata = {
-  title: "Universal SmartPOS | Enterprise Ecosystem",
-  description: "Next-generation modular point of sale for modern enterprises.",
+  title: "BarPOS | Liquor Store & Bar System",
+  description: "Specialized POS solution for modern liquor stores and bars.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "BarPOS",
+  },
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
 };
 
 export default function RootLayout({

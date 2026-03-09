@@ -55,37 +55,38 @@ interface BusinessState {
   auditTrail: AuditEntry[];
   paybill?: string;
   businessTill?: string;
-  
+
   paybillAccount?: string;
-  
+
   // Real-time Sync (Used by SyncManager)
   setFirestoreState: (state: Partial<BusinessState>) => void;
-  
+
   // Configuration Functions
   updateSettings: (settings: Partial<{ businessName: string; businessType: BusinessType; currency: string; taxRate: number; paybill: string; paybillAccount: string; businessTill: string }>) => void;
-  
+
   // Product Management
   addProduct: (product: Product, adminName: string) => Promise<void>;
   updateProduct: (id: string, updates: Partial<Product>, adminName: string) => Promise<void>;
   deleteProduct: (id: string, adminName: string) => Promise<void>;
   updateStock: (productId: string, quantity: number, action: 'SALE' | 'MANUAL', initiator: string) => Promise<void>;
-  
+
   // Order Management
   createOrder: (order: Order) => Promise<void>;
   dispatchOrder: (orderId: string, initiator: string) => Promise<void>;
   completeOrder: (orderId: string, initiator: string) => Promise<void>;
   voidOrder: (orderId: string) => Promise<void>;
   recordSale: (items: any[], total: number, initiator: string) => Promise<void>;
-  
+
   // Reporting & Stats
   getSalesByWaiter: () => Record<string, number>;
   getWaiterStats: (waiterId: string) => { settled: number; unsettled: number; total: number };
   getWaiterSummary: () => { waiterName: string; settled: number; unsettled: number; total: number }[];
-  
+
   // Internal Utility
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => Promise<void>;
   markNotificationsRead: () => Promise<void>;
   addAudit: (entry: Omit<AuditEntry, 'id' | 'timestamp'>) => Promise<void>;
+  resetDashboard: (initiator: string) => Promise<void>;
 }
 
 export const useBusinessStore = create<BusinessState>()(
@@ -107,39 +108,39 @@ export const useBusinessStore = create<BusinessState>()(
       setFirestoreState: (state) => set((s) => ({ ...s, ...state })),
 
       updateSettings: async (settings) => {
-          set((state) => ({ ...state, ...settings }));
-          await setDoc(doc(db, "settings", "global"), {
-              businessName: get().businessName,
-              currency: get().currency,
-              taxRate: get().taxRate,
-              paybill: get().paybill || '',
-              paybillAccount: get().paybillAccount || '',
-              businessTill: get().businessTill || '',
-              updatedAt: new Date().toISOString()
-          }, { merge: true });
+        set((state) => ({ ...state, ...settings }));
+        await setDoc(doc(db, "settings", "global"), {
+          businessName: get().businessName,
+          currency: get().currency,
+          taxRate: get().taxRate,
+          paybill: get().paybill || '',
+          paybillAccount: get().paybillAccount || '',
+          businessTill: get().businessTill || '',
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
       },
 
       addNotification: async (n) => {
-          const newNotif = {
-              ...n,
-              timestamp: new Date().toISOString(),
-              read: false
-          };
-          await addDoc(collection(db, "notifications"), newNotif);
+        const newNotif = {
+          ...n,
+          timestamp: new Date().toISOString(),
+          read: false
+        };
+        await addDoc(collection(db, "notifications"), newNotif);
       },
 
       markNotificationsRead: async () => {
-          const unread = get().notifications.filter(n => !n.read);
-          for (const n of unread) {
-              await updateDoc(doc(db, "notifications", n.id), { read: true });
-          }
+        const unread = get().notifications.filter(n => !n.read);
+        for (const n of unread) {
+          await updateDoc(doc(db, "notifications", n.id), { read: true });
+        }
       },
 
       addAudit: async (a) => {
-          await addDoc(collection(db, "auditTrail"), {
-              ...a,
-              timestamp: new Date().toISOString()
-          });
+        await addDoc(collection(db, "auditTrail"), {
+          ...a,
+          timestamp: new Date().toISOString()
+        });
       },
 
       // Product Actions
@@ -185,7 +186,7 @@ export const useBusinessStore = create<BusinessState>()(
 
         const newStock = action === 'SALE' ? product.stock - quantity : product.stock + quantity;
         await updateDoc(doc(db, "products", productId), { stock: newStock });
-        
+
         if (action === 'MANUAL') {
           await get().addNotification({
             title: 'Stock Updated',
@@ -203,13 +204,13 @@ export const useBusinessStore = create<BusinessState>()(
 
       // Order Actions
       createOrder: async (order) => {
-          await setDoc(doc(db, "activeOrders", order.id), order);
-          // Auto-generate notification for counter
-          await get().addNotification({
-            title: 'New Order Received',
-            message: `${order.waiterName} sent a new order for ${get().currency} ${order.total.toLocaleString()}`,
-            type: 'INFO'
-          });
+        await setDoc(doc(db, "activeOrders", order.id), order);
+        // Auto-generate notification for counter
+        await get().addNotification({
+          title: 'New Order Received',
+          message: `${order.waiterName} sent a new order for ${get().currency} ${order.total.toLocaleString()}`,
+          type: 'INFO'
+        });
       },
 
       dispatchOrder: async (orderId, initiator) => {
@@ -233,7 +234,7 @@ export const useBusinessStore = create<BusinessState>()(
         if (order) {
           if (order.status === 'PENDING') {
             for (const item of order.items) {
-               await get().updateStock(item.id, item.quantity, 'SALE', initiator);
+              await get().updateStock(item.id, item.quantity, 'SALE', initiator);
             }
           }
           await deleteDoc(doc(db, "activeOrders", orderId));
@@ -308,6 +309,35 @@ export const useBusinessStore = create<BusinessState>()(
           const settled = completed.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
           const unsettled = active.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
           return { waiterName: name, settled, unsettled, total: settled + unsettled };
+        });
+      },
+
+      resetDashboard: async (initiator) => {
+        // 1. Clear Firestore collections (Batch would be better, but we'll do sequential for now if small)
+        // We'll clear orders, notifications and audit trail
+        const collectionsToClear = ["activeOrders", "completedOrders", "notifications", "auditTrail"];
+
+        // In a real app with many docs, you'd use a cloud function or limit-based deletion
+        // Here we clear what's in memory/tracked
+        for (const order of get().activeOrders) await deleteDoc(doc(db, "activeOrders", order.id));
+        for (const order of get().completedOrders) await deleteDoc(doc(db, "completedOrders", order.id));
+        for (const n of get().notifications) await deleteDoc(doc(db, "notifications", n.id));
+        for (const a of get().auditTrail) await deleteDoc(doc(db, "auditTrail", a.id));
+
+        // 2. Update local state
+        set({
+          activeOrders: [],
+          completedOrders: [],
+          notifications: [],
+          auditTrail: []
+        });
+
+        // 3. Add a fresh audit entry for the reset itself
+        await get().addAudit({
+          userId: 'ADMIN',
+          userName: initiator,
+          action: 'DASHBOARD_RESET',
+          details: 'All transactional data and dashboard figures reset to zero.'
         });
       }
     }),

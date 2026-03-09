@@ -223,6 +223,21 @@ export default function BusinessEngine() {
                                  <td className="px-8 py-6 font-mono text-slate-500 font-bold tracking-[8px]">****</td>
                                  <td className="px-8 py-6 text-right">
                                     <div className="flex justify-end gap-2">
+                                       <button
+                                          onClick={() => {
+                                             const newPin = prompt(`Reset PIN for ${u.name}. Enter new 4-digit PIN:`);
+                                             if (newPin && newPin.length === 4) {
+                                                updateUserPin(u.id, newPin);
+                                                alert("PIN updated successfully.");
+                                             } else if (newPin) {
+                                                alert("Invalid PIN. It must be exactly 4 digits.");
+                                             }
+                                          }}
+                                          className="p-2 text-slate-600 hover:text-brand-blue transition-colors"
+                                          title="Reset Security PIN"
+                                       >
+                                          <RefreshCw size={16} />
+                                       </button>
                                        <button className="p-2 text-slate-600 hover:text-white transition-colors"><Edit size={16} /></button>
                                        <button
                                           onClick={() => removeUser(u.id)}
